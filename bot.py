@@ -21,8 +21,17 @@ def add_movie(message):
     bot.register_next_step_handler(msg, process_title)
 
 def process_title(message):
-    params_dict[message.chat.id]['title'] = message.text
-    ask_for_rating(message)
+    chat_id = message.chat.id
+    if 'state' in params_dict[chat_id] and params_dict[chat_id]['state'] == 'editing_title':
+        new_title = message.text
+        film_id = params_dict[chat_id]['film_id']
+        # params_dict[chat_id]['title'] = new_title
+        db.films.update_one({'_id': ObjectId(film_id)}, {'$set': {'title': new_title}})
+        bot.send_message(chat_id, f"Назву фільму змінено на '{new_title}'")
+        params_dict[chat_id] = {}
+    else:
+        params_dict[message.chat.id]['title'] = message.text
+        ask_for_rating(message)
 
 def ask_for_rating(message):
     msg = bot.send_message(message.chat.id, 'Оцінка фільму (або введи -, щоб пропустити"):')
@@ -40,8 +49,14 @@ def process_rating(message):
             rating = None
     except ValueError:
         rating = None
-    params_dict[message.chat.id]['rating'] = rating
-    ask_for_review(message)
+    if 'state' in params_dict[message.chat.id] and params_dict[message.chat.id]['state'] == 'editing_rating':
+        film_id = params_dict[message.chat.id]['film_id']
+        db.films.update_one({'_id': ObjectId(film_id)}, {'$set': {'rating': rating}})
+        bot.send_message(message.chat.id, f"Оцінку фільму змінено на '{rating}'")
+        params_dict[message.chat.id] = {}
+    else:
+        params_dict[message.chat.id]['rating'] = rating
+        ask_for_review(message)
 
 def ask_for_review(message):
     msg = bot.send_message(message.chat.id, 'Відгук (або введи -, щоб пропустити"):')
@@ -49,8 +64,14 @@ def ask_for_review(message):
 
 def process_review(message):
     review = message.text if message.text.lower() != 'skip' else None
-    params_dict[message.chat.id]['review'] = review
-    ask_for_date(message)
+    if 'state' in params_dict[message.chat.id] and params_dict[message.chat.id]['state'] == 'editing_review':
+        film_id = params_dict[message.chat.id]['film_id']
+        db.films.update_one({'_id': ObjectId(film_id)}, {'$set': {'review': review}})
+        bot.send_message(message.chat.id, f"Відгук змінено на '{review}'")
+        params_dict[message.chat.id] = {}
+    else:
+        params_dict[message.chat.id]['review'] = review
+        ask_for_date(message)
 
 def ask_for_date(message):
     markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
@@ -72,9 +93,16 @@ def process_date(message):
     else:
         full_date = None
         year = None
-    params_dict[message.chat.id]['full_date'] = full_date
-    params_dict[message.chat.id]['year'] = year
-    ask_for_conditions(message)
+
+    if 'state' in params_dict[message.chat.id] and params_dict[message.chat.id]['state'] == 'editing_date':
+        film_id = params_dict[message.chat.id]['film_id']
+        db.films.update_one({'_id': ObjectId(film_id)}, {'$set': {'date_watched': full_date}})
+        bot.send_message(message.chat.id, f"Дата перегляду змінена на '{full_date}'")
+        params_dict[message.chat.id] = {}
+    else:
+        params_dict[message.chat.id]['full_date'] = full_date
+        params_dict[message.chat.id]['year'] = year
+        ask_for_conditions(message)
 
 def process_custom_date(message):
     try:
@@ -84,9 +112,15 @@ def process_custom_date(message):
         bot.send_message(message.chat.id, 'Неправильний формат дати. Спробуй ще раз')
         ask_for_date(message)
         return
-    params_dict[message.chat.id]['full_date'] = full_date
-    params_dict[message.chat.id]['year'] = year
-    ask_for_conditions(message)
+    if 'state' in params_dict[message.chat.id] and params_dict[message.chat.id]['state'] == 'editing_date':
+        film_id = params_dict[message.chat.id]['film_id']
+        db.films.update_one({'_id': ObjectId(film_id)}, {'$set': {'date_watched': full_date}})
+        bot.send_message(message.chat.id, f"Дата перегляду змінена на '{full_date}'")
+        params_dict[message.chat.id] = {}
+    else:
+        params_dict[message.chat.id]['full_date'] = full_date
+        params_dict[message.chat.id]['year'] = year
+        ask_for_conditions(message)
 
 def ask_for_conditions(message):
     markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
@@ -102,9 +136,15 @@ def process_conditions(message):
     if conditions == 'Інше':
         process_custom_conditions(message)
         return
-    params_dict[message.chat.id]['conditions'] = conditions
-    if 'film_id' in params_dict[chat_id]:
-        update_movie_info(message)
+    params_dict[chat_id]['conditions'] = conditions
+    if 'state' in params_dict[chat_id]:
+        if params_dict[chat_id]['state'] == 'editing_all':
+            update_movie_info(message)
+        else:
+            film_id = params_dict[chat_id]['film_id']
+            db.films.update_one({'_id': ObjectId(film_id)}, {'$set': {'watch_conditions': conditions}})
+            bot.send_message(chat_id, f"Умови перегляду змінено на '{conditions}'")
+            params_dict[chat_id] = {}
     else:
         save_movie_info(message)
 
@@ -261,22 +301,39 @@ def edit_film(call):
     film_id = call.data.split('_')[2]
     params_dict[chat_id] = {'film_id': film_id}
     markup = quick_markup({
-        'Редагувати назву': {'callback_data': 'edit_title'},
-        'Редагувати оцінку': {'callback_data': 'edit_rating'},
-        'Редагувати відгук': {'callback_data': 'edit_review'},
-        'Редагувати дату перегляду': {'callback_data': 'edit_date'},
-        'Редагувати умови перегляду': {'callback_data': 'edit_conditions'},
+        'Редагувати назву': {'callback_data': f'edit_title_{film_id}'},
+        'Редагувати оцінку': {'callback_data': f'edit_rating_{film_id}'},
+        'Редагувати відгук': {'callback_data': f'edit_review_{film_id}'},
+        'Редагувати дату перегляду': {'callback_data': f'edit_date_{film_id}'},
+        'Редагувати умови перегляду': {'callback_data': f'edit_conditions_{film_id}'},
         'Редагувати все': {'callback_data': f'edit_all_{film_id}'}
     })
     bot.send_message(chat_id, f'Оберіть, що саме редагувати:{film_id}', reply_markup=markup)
 
-@bot.callback_query_handler(func=lambda call: call.data.startswith('edit_all_'))
-def edit_all(call):
+# @bot.callback_query_handler(func=lambda call: call.data.startswith('edit_all_'))
+# def edit_all(call):
+#     chat_id = call.message.chat.id
+#     film_id = call.data.split('_')[2]
+#     params_dict[chat_id] = {'film_id': film_id}
+#     msg = bot.send_message(chat_id, f'Введи нову назву фільму:{film_id}')
+#     bot.register_next_step_handler(msg, process_title)
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('edit_'))
+def edit_smth(call):
     chat_id = call.message.chat.id
     film_id = call.data.split('_')[2]
-    params_dict[chat_id] = {'film_id': film_id}
-    msg = bot.send_message(chat_id, f'Введи нову назву фільму:{film_id}')
-    bot.register_next_step_handler(msg, process_title)
+    attribute = call.data.split('_')[1]
+    params_dict[chat_id] = {'film_id': film_id, 'state': f'editing_{attribute}'}
+    if attribute == 'title' or attribute == 'all':
+        add_movie(call.message)
+    elif attribute == 'rating':
+        ask_for_rating(call.message)
+    elif attribute == 'review':
+        ask_for_review(call.message)
+    elif attribute == 'date':
+        ask_for_date(call.message)
+    elif attribute == 'conditions':
+        ask_for_conditions(call.message)
 
 @bot.callback_query_handler(func=lambda call: call.data == 'back_to_list')
 def back_to_list(call):
