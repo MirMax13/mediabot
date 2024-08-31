@@ -270,7 +270,10 @@ def process_list_type(message):
 
         for item in all_items:
             title = item.get('title', 'Немає назви')
-            button = types.InlineKeyboardButton(text=title, callback_data=f"film_{item['_id']}")
+            rating = item.get('rating', 'Немає оцінки')
+            date = item.get('date_watched', 'Немає дати')
+            button_text = f"{title} |  {rating} |  {date}"
+            button = types.InlineKeyboardButton(text=button_text, callback_data=f"film_{item['_id']}")
             markup.add(button)
         bot.send_message(chat_id, 'Оберіть фільм:', reply_markup=markup)
     elif list_type == 'За роком':
