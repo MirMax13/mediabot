@@ -134,7 +134,7 @@ def process_conditions(message):
     conditions = message.text
     chat_id = message.chat.id
     if conditions == 'Інше':
-        process_custom_conditions(message)
+        ask_for_custom_conditions(message)
         return
     params_dict[chat_id]['conditions'] = conditions
     if 'state' in params_dict[chat_id]:
@@ -148,14 +148,27 @@ def process_conditions(message):
     else:
         save_movie_info(message)
 
-def process_custom_conditions(message):
+def ask_for_custom_conditions(message):
     chat_id = message.chat.id
     markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
     options = ['З кимось, а потім сам', 'Сам, а потім з кимось']
     for option in options:
         markup.add(option)
+    msg = bot.send_message(chat_id, 'Оберіть умови перегляду:', reply_markup=markup)
+    bot.register_next_step_handler(msg, process_custom_conditions)
+    
+def process_custom_conditions(message):
+    chat_id = message.chat.id
+    custom_conditions = message.text
+    params_dict[chat_id]['conditions'] = custom_conditions
     if 'film_id' in params_dict[chat_id]:
-        update_movie_info(message)
+        if params_dict[chat_id]['state'] == 'editing_all':
+            update_movie_info(message)
+        else:
+            film_id = params_dict[chat_id]['film_id']
+            db.films.update_one({'_id': ObjectId(film_id)}, {'$set': {'watch_conditions': custom_conditions}})
+            bot.send_message(chat_id, f"Умови перегляду змінено на '{custom_conditions}'")
+            params_dict[chat_id] = {}
     else:
         save_movie_info(message) #TODO: Does it work?
     
