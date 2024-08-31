@@ -3,6 +3,7 @@ import time
 import json
 import os
 from telebot import types
+from http.server import BaseHTTPRequestHandler
 
 class handler(BaseHTTPRequestHandler):
     server_version = 'WebhookHandler/1.0'
