@@ -326,14 +326,6 @@ def edit_film(call):
     })
     bot.send_message(chat_id, f'Оберіть, що саме редагувати:{film_id}', reply_markup=markup)
 
-# @bot.callback_query_handler(func=lambda call: call.data.startswith('edit_all_'))
-# def edit_all(call):
-#     chat_id = call.message.chat.id
-#     film_id = call.data.split('_')[2]
-#     params_dict[chat_id] = {'film_id': film_id}
-#     msg = bot.send_message(chat_id, f'Введи нову назву фільму:{film_id}')
-#     bot.register_next_step_handler(msg, process_title)
-
 @bot.callback_query_handler(func=lambda call: call.data.startswith('edit_'))
 def edit_smth(call):
     chat_id = call.message.chat.id
@@ -363,15 +355,31 @@ def back_to_list(call):
         markup.add(button)
     bot.send_message(chat_id, 'Оберіть фільм:', reply_markup=markup)
 
-
 def process_year(message):
     chat_id = message.chat.id
     year = message.text
     bot.send_message(chat_id, f'Обраний рік: {year}')
-    items = db.films.find({'year': year})
-    for item in items:
-        bot.send_message(chat_id, item)
-
+    
+    try:
+        year_int = int(year)
+    except ValueError:
+        bot.send_message(chat_id, 'Невірний формат року. Введіть, будь ласка, рік у форматі чисел.')
+        return
+    
+    items = db.films.find({'year': year_int}).sort('date_watched', 1)
+    count = db.films.count_documents({'year': year_int})
+    if count == 0:
+        bot.send_message(chat_id, 'Фільмів за обраний рік не знайдено.')
+    else:
+        markup = types.InlineKeyboardMarkup()
+        for item in items:
+            title = item.get('title', 'Немає назви')
+            rating = item.get('rating', 'Немає оцінки')
+            date = item.get('date_watched', 'Немає дати')
+            button_text = f"{title} |  {rating} |  {date}"
+            button = types.InlineKeyboardButton(text=button_text, callback_data=f"film_{item['_id']}")
+            markup.add(button)
+        bot.send_message(chat_id, 'Оберіть фільм:', reply_markup=markup)
 def process_years(message):
     chat_id = message.chat.id
     years = message.text.split()
