@@ -51,29 +51,31 @@ def process_many_movies(message):
                 date = f"{year_int}-{int(month):02d}-{int(day):02d}" if year_int else None
             else:
                 date = year_int
-            if rating:
-                rating = rating.strip()
+            if rating: #TODO: Check does it work
+                rating = float(rating.split('/')[0])
+                if 0 <= rating <= 10:
+                    rating = round(rating, 1)
             else:
                 rating = None
 
             if conditions == '+':
-                watch_conditions = 'Сам вдома'
+                condition = 'Сам вдома'
             elif conditions == '++':
-                watch_conditions = 'З кимось вдома'
+                condition = 'З кимось вдома'
             elif conditions == '+++':
-                watch_conditions = 'На великих екранах'
+                condition = 'На великих екранах'
             elif conditions == '+-+':
-                watch_conditions = 'З кимось, а потім сам'
+                condition = 'З кимось, а потім сам'
             elif conditions == '-':
-                watch_conditions = 'Недодивився'
+                condition = 'Недодивився'
             else:
-                watch_conditions = None
+                condition = None
 
             db.films.insert_one({
                 'title': title,
                 'rating': rating,
-                'date_watched': date,
-                'watch_conditions': watch_conditions,
+                'date': date,
+                'conditions': condition,
                 'year': year_int
             })
         except Exception as e:
