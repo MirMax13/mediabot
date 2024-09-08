@@ -9,7 +9,7 @@ from commands.start import send_welcome
 from commands.search_movie import search_movie
 from commands.search_game import search_game
 from commands.search_book import search_book
-
+from commands.admin import admin_panel
 
 bot.message_handler(commands=['add_movie'])(add_movie)
 bot.message_handler(commands=['add_game'])(add_game)
@@ -21,6 +21,7 @@ bot.message_handler(commands=['start'])(send_welcome)
 bot.message_handler(commands=['search_movie'])(search_movie)
 bot.message_handler(commands=['search_game'])(search_game)
 bot.message_handler(commands=['search_book'])(search_book)
+bot.message_handler(commands=['admin'])(admin_panel)
 
 
 bot.delete_webhook()

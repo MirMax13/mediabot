@@ -1,9 +1,13 @@
 import re
 from config import bot
 from db import db
+from functions.admin_check import is_user_admin
 
 def add_many_movies(message):
     chat_id = message.chat.id
+    if not is_user_admin(message):
+        bot.send_message(chat_id, "Ви не адміністратор")
+        return
     bot.send_message(chat_id, 'Введи текстом увесь вміст файлу за певний рік')
     bot.register_next_step_handler(message, process_many_movies)
 

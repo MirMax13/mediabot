@@ -296,13 +296,3 @@ def update_info(message, media_type):
 
     db[media_type + 's'].update_one({'_id': ObjectId(media_id)}, {'$set': update_data})
     bot.send_message(chat_id, 'Інформацію оновлено.', reply_markup=types.ReplyKeyboardRemove())
-
-    
-@bot.callback_query_handler(func=lambda call: call.data.startswith('back_to_item_'))
-def back_to_item(call):
-    chat_id = call.message.chat.id
-    media_type = call.data.split('_')[-1]
-    markup = quick_markup({
-        'Назад': {'callback_data': f'back_to_item_{media_type}'},
-    })
-    bot.send_message(chat_id, 'Вибери дію:', reply_markup=markup)
