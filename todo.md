@@ -15,5 +15,5 @@
 - [ ] **Activity logs**: `9` ⚪
 - [x] **Adding/editing books**: `4` 🔴
 - [ ] **Interrupt error fix**: `10` ⚪
-- [ ] **Search**: `6` 🟡🔴
+- [x] **Search**: `6` 🟡🔴
 - [ ] **English language**: `7` ⚪

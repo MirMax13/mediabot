@@ -18,6 +18,7 @@ def send_welcome(message):
         Команди для пошуку:
         /search_movie - пошук фільму
         /search_game - пошук гри
+        /search_book - пошук книги
 
         Команди для видалення:
         /delete_movie - видалити фільм
