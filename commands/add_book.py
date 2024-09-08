@@ -1,10 +1,8 @@
 
 from config import bot
+from commands.adding_updating import process_title
+
 
 def add_book(message):
-    bot.reply_to(message, "What is the title of the book?")
-    bot.register_next_step_handler(message, add_book_title)
-
-def add_book_title(message):
-    book_title = message.text
-    bot.reply_to(message, f"Book title is {book_title}")
+    msg = bot.send_message(message.chat.id, "Як називалася книжка?")
+    bot.register_next_step_handler(msg, process_title, 'book')

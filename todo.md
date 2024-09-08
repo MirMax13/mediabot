@@ -13,7 +13,7 @@
 - [ ] **Restrict commands adding many media**: `8` 🔵🟡
 - [ ] **Admin Panel**: `5` ⚪
 - [ ] **Activity logs**: `9` ⚪
-- [ ] **Adding/editing books**: `4` 🔴
+- [x] **Adding/editing books**: `4` 🔴
 - [ ] **Interrupt error fix**: `10` ⚪
 - [ ] **Search**: `6` 🟡🔴
 - [ ] **English language**: `7` ⚪

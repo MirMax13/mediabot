@@ -2,15 +2,15 @@ from telebot import types
 from db import db
 from bson import ObjectId
 from config import bot,params_dict
-from commands.adding_updating import ask_for_rating, ask_for_review, ask_for_date, ask_for_conditions
+from commands.adding_updating import ask_for_rating, ask_for_review, ask_for_date, ask_for_conditions,ask_for_author
 from commands.add_movie import add_movie
 from commands.add_game import add_game
+from commands.add_book import add_book
 from telebot.util import quick_markup
 from telebot.types import Message
 
 def list_items(message):
     chat_id = message.chat.id
-    bot.send_message(chat_id, 'Обробка команди /list')  # Діагностичне повідомлення
     markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
     options = ['Фільми', 'Ігри', 'Книги']
     for option in options:
@@ -54,6 +54,8 @@ def send_paginated_list(chat_id, page,year=None, years=None, title=None,media_ty
         query['year'] = {'$in': years}
     if 'фільми' in media_type.lower():
         all_items = list(db.films.find(query).sort('date', 1))
+    elif 'книги' in media_type.lower():
+        all_items = list(db.books.find(query).sort('date', 1))
     elif 'ігри' in media_type.lower():
         all_items = list(db.games.find(query).sort([('rating', -1), ('title', 1)]))
     total_pages = (len(all_items) + items_per_page - 1) // items_per_page
@@ -67,7 +69,7 @@ def send_paginated_list(chat_id, page,year=None, years=None, title=None,media_ty
         rating = item.get('rating', 'Немає оцінки')
         date = item.get('date', 'Немає дати')
         button_text = f"{title} | {rating} | {date}"
-        callback_type = 'game' if 'ігри' in media_type.lower() else 'film'
+        callback_type = 'game' if 'ігри' in media_type.lower() else 'film' if 'фільми' in media_type.lower() else 'book'
         button = types.InlineKeyboardButton(text=button_text, callback_data=f"{callback_type}_{item['_id']}")
         markup.add(button)
 
@@ -87,8 +89,6 @@ def change_page(call):
     year = int(data[4]) if len(data) > 4 and data[4] != 'None' else None
     years = list(map(int, data[4].strip('[]').split(','))) if len(data) > 4 and data[4] != 'None' else None
     send_paginated_list(chat_id, page, year=year, years=years,media_type=media_type)
-
-
 
 def process_year(message,media_type):
     chat_id = message.chat.id
@@ -116,9 +116,7 @@ def process_years(message,media_type):
 
     send_paginated_list(chat_id, 0, years=years, media_type=media_type)
 
-
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith(('film_', 'game_')))
+@bot.callback_query_handler(func=lambda call: call.data.startswith(('film_', 'game_', 'book_')))
 def send_media_info(call):
     chat_id = call.message.chat.id
     media_type, media_id = call.data.split('_')
@@ -135,7 +133,10 @@ def send_media_info(call):
         review = media.get('review', '-')
         year = media.get('year', 'Немає року')
         date = media.get('date', 'Немає дати')
-        conditions = media.get('conditions', 'Немає умов')
+        
+        if media_type == 'film' or media_type == 'game':
+            conditions = media.get('conditions', 'Немає умов')
+            
         if media_type == 'film':
             message_text = (f"Назва: {title}\n"
                             f"Оцінка: {rating}\n"
@@ -150,11 +151,19 @@ def send_media_info(call):
                             f"Рік: {year}\n"
                             f"Дата: {date}\n"
                             f"Умови: {conditions}")
+        elif media_type == 'book':
+            author = media.get('author', 'Немає автора')
+            message_text = (f"Назва: {title}\n"
+                            f"Автор: {author}\n"
+                            f"Оцінка: {rating}\n"
+                            f"Відгук: {review}\n"
+                            f"Рік: {year}\n"
+                            f"Дата: {date}\n")
         bot.send_message(chat_id, message_text,reply_markup=markup)
     else:
-        bot.send_message(chat_id, 'Фільм не знайдено.')
+        bot.send_message(chat_id, 'Нічого не знайдено.')
 
-@bot.callback_query_handler(func=lambda call: call.data.startswith(('delete_film_', 'delete_game_')))
+@bot.callback_query_handler(func=lambda call: call.data.startswith(('delete_film_', 'delete_game_', 'delete_book_')))
 def delete_media(call):
     chat_id = call.message.chat.id
     media_type, media_id = call.data.split('_')[1:]
@@ -163,21 +172,28 @@ def delete_media(call):
         msg = 'Фільм видалено.'
     elif media_type == 'game':
         msg = 'Гру видалено.'
+    elif media_type == 'book':
+        msg = 'Книгу видалено.'
     bot.send_message(chat_id, msg)
 
-@bot.callback_query_handler(func=lambda call: call.data.startswith(('edit_film_', 'edit_game_')))
+@bot.callback_query_handler(func=lambda call: call.data.startswith(('edit_film_', 'edit_game_', 'edit_book_')))
 def edit_media(call):
     chat_id = call.message.chat.id
     media_type, media_id = call.data.split('_')[1:]
     params_dict[chat_id] = {'media_id': media_id}
-    markup = quick_markup({
+    options = {
         'Редагувати назву': {'callback_data': f'edit_title_{media_type}_{media_id}'},
         'Редагувати оцінку': {'callback_data': f'edit_rating_{media_type}_{media_id}'},
         'Редагувати відгук': {'callback_data': f'edit_review_{media_type}_{media_id}'},
         'Редагувати дату': {'callback_data': f'edit_date_{media_type}_{media_id}'},
-        'Редагувати умови': {'callback_data': f'edit_conditions_{media_type}_{media_id}'},
         'Редагувати все': {'callback_data': f'edit_all_{media_type}_{media_id}'}
-    })
+    }
+    if media_type in ['film', 'game']:
+        options['Редагувати умови'] = {'callback_data': f'edit_conditions_{media_type}_{media_id}'}
+    elif media_type == 'book':
+        options['Редагувати автора'] = {'callback_data': f'edit_author_{media_type}_{media_id}'}
+    
+    markup = quick_markup(options)
     bot.send_message(chat_id, f'Оберіть, що саме редагувати:', reply_markup=markup)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('edit_'))
@@ -190,6 +206,8 @@ def edit_smth(call):
             add_movie(call.message)
         elif media_type == 'game':
             add_game(call.message)
+        elif media_type == 'book':
+            add_book(call.message)
     elif attribute == 'rating':
         ask_for_rating(call.message,media_type)
     elif attribute == 'review':
@@ -198,8 +216,9 @@ def edit_smth(call):
         ask_for_date(call.message,media_type)
     elif attribute == 'conditions':
         ask_for_conditions(call.message,media_type)
-
-
+    elif attribute == 'author':
+        ask_for_author(call.message,media_type)
+        
 @bot.callback_query_handler(func=lambda call: call.data.startswith('back_to_list_'))
 def back_to_list(call):
     media_type = call.data.split('_')[3]
@@ -207,6 +226,8 @@ def back_to_list(call):
         media_type = 'Фільми'
     elif media_type == 'game':
         media_type = 'Ігри'
+    elif media_type == 'book':
+        media_type = 'Книги'
 
     message = Message(
         message_id=call.message.message_id,
