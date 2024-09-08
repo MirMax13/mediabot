@@ -1,6 +1,6 @@
 
 from config import bot
-from commands.adding_updating import process_title
+from functions.adding_updating import process_title
 
 
 def add_book(message):

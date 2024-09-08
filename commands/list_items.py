@@ -2,7 +2,7 @@ from telebot import types
 from db import db
 from bson import ObjectId
 from config import bot,params_dict
-from commands.adding_updating import ask_for_rating, ask_for_review, ask_for_date, ask_for_conditions,ask_for_author
+from functions.adding_updating import ask_for_rating, ask_for_review, ask_for_date, ask_for_conditions,ask_for_author
 from commands.add_movie import add_movie
 from commands.add_game import add_game
 from commands.add_book import add_book
