@@ -43,7 +43,7 @@ class Handler(FileSystemEventHandler):
         if event.is_directory:
             return None
         
-        if any(excluded in event.src_path for excluded in ['venv', '__pycache__', '.git', '.tmp', '.lock']):
+        if any(excluded in event.src_path for excluded in ['venv', '__pycache__', '.git', '.tmp', '.lock', '.env.example', 'Procfile', 'requirements.txt','todo.md']):
             return None
         
         if event.event_type == 'modified':
