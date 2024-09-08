@@ -7,7 +7,7 @@
 
 - [-] **Editing command**: `6` 🔵🟡🔴
 - [-] **Deleting command**: `6` 🔵🟡🔴
-- [ ] **Input Database Limit**: `8` ⚪
+- [x] **Input Database Limit**: `8` ⚪
 - [ ] **Command for output my data**: `7` ⚪
 - [ ] **Txt Export**: `1` ⚪
 - [x] **Restrict commands adding many media**: `8` 🔵🟡
@@ -17,3 +17,4 @@
 - [ ] **Interrupt error fix**: `10` ⚪
 - [x] **Search**: `6` 🟡🔴
 - [ ] **English language**: `7` ⚪
+- [ ] **Fix button input**: `10` ⚪

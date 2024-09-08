@@ -13,4 +13,3 @@ db = client['mediadatabase']
 films = db['films']
 books = db['books']
 games = db['games']
-

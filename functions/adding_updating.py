@@ -3,8 +3,10 @@ from bson import ObjectId
 from telebot import types
 from db import db
 from config import bot, params_dict
-from telebot.util import quick_markup
+from functions.admin_check import is_user_admin
+import os
 
+MAX_RECORDS_PER_USER = int(os.getenv('MAX_RECORDS_PER_USER', 300))
 messages = {
     'film': {
         'editing': {
@@ -228,7 +230,7 @@ def ask_for_custom_conditions(message, media_type):
         markup.add(option)
     msg = bot.send_message(chat_id, 'Оберіть умови перегляду:', reply_markup=markup)
     bot.register_next_step_handler(msg, process_custom_conditions, media_type)
-    
+
 def process_custom_conditions(message, media_type):
     chat_id = message.chat.id
     custom_conditions = message.text
@@ -247,24 +249,35 @@ def process_custom_conditions(message, media_type):
         save_info(message, media_type)
     
 def save_info(message, media_type):
-    if message.chat.id not in params_dict:
-        params_dict[message.chat.id] = {}
+    chat_id = message.chat.id
+    if chat_id not in params_dict:
+        params_dict[chat_id] = {}
+    
+    total_records = (
+        db.films.count_documents({'user_id': chat_id}) +
+        db.books.count_documents({'user_id': chat_id}) +
+        db.games.count_documents({'user_id': chat_id})
+    )
+    
+    if (total_records >= MAX_RECORDS_PER_USER) and not is_user_admin(message):
+        bot.send_message(chat_id, 'Ви досягли ліміту записів. Видаліть деякі записи, щоб додати нові.')
+        return
     
     media_data = {
-        'title': params_dict[message.chat.id]['title'],
-        'rating': params_dict[message.chat.id]['rating'],
-        'review': params_dict[message.chat.id]['review'],
-        'year':  params_dict[message.chat.id]['year'],
-        'date': params_dict[message.chat.id]['full_date']
+        'user_id': chat_id,
+        'title': params_dict[chat_id]['title'],
+        'rating': params_dict[chat_id]['rating'],
+        'review': params_dict[chat_id]['review'],
+        'year':  params_dict[chat_id]['year'],
+        'date': params_dict[chat_id]['full_date']
     }
     if media_type in ['film', 'game']:
-        media_data['conditions'] = params_dict[message.chat.id]['conditions']
+        media_data['conditions'] = params_dict[chat_id]['conditions']
     elif media_type == 'book':
-        media_data['author'] = params_dict[message.chat.id]['author']
+        media_data['author'] = params_dict[chat_id]['author']
     
     db[media_type + 's'].insert_one(media_data)
-    chat_id = message.chat.id
-    msg = {messages[media_type]['adding']}+ 'успішно додано!'
+    msg = messages[media_type]['adding']+ ' успішно додано!'
     bot.send_message(chat_id, msg, reply_markup=types.ReplyKeyboardRemove())
 
 def update_info(message, media_type):

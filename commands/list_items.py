@@ -45,7 +45,7 @@ def process_list_type(message,media_type):
 
 def send_paginated_list(chat_id, page,year=None, years=None, title=None,media_type=None):
     items_per_page = 85
-    query = {}
+    query = {'user_id': chat_id}
     if title is not None:
         query['title'] = {'$regex': title, '$options': 'i'}
     elif year is not None:
@@ -238,6 +238,6 @@ def back_to_list(call):
         options={},
         json_string=None,
     )
-    message.text = media_type  # Встановлення тексту повідомлення
+    message.text = media_type  
 
     process_list(message)
