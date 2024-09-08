@@ -187,9 +187,9 @@ def edit_smth(call):
     params_dict[chat_id] = {'media_id': media_id, 'media_type': media_type,'state': f'editing_{attribute}'}
     if attribute == 'title' or attribute == 'all':
         if media_type == 'film': 
-            add_movie(call.message,media_type)
+            add_movie(call.message)
         elif media_type == 'game':
-            add_game(call.message,media_type)
+            add_game(call.message)
     elif attribute == 'rating':
         ask_for_rating(call.message,media_type)
     elif attribute == 'review':
@@ -197,7 +197,7 @@ def edit_smth(call):
     elif attribute == 'date':
         ask_for_date(call.message,media_type)
     elif attribute == 'conditions':
-        ask_for_conditions(call.message)
+        ask_for_conditions(call.message,media_type)
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('back_to_list_'))
