@@ -21,4 +21,4 @@
 - [x] **Search for my data**: `6` ⚪
 - [ ] **Fix data button loss when restart bot code** `4` ⚪
 - [x] **Update search (rating,conditions)** `7` 🔵🟡🔴
-- [ ] **Add genre to books** `6` 🔴
+- [ ] **Add genre to books** `3` 🔴
