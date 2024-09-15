@@ -1,4 +1,4 @@
-from commands.list_items import send_paginated_list
+from functions.list import send_paginated_list
 
 def process_search_title(message, media_type):
     title = message.text
