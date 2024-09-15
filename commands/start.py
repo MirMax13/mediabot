@@ -19,9 +19,13 @@ def send_welcome(message):
         /search_movie - пошук фільму
         /search_game - пошук гри
         /search_book - пошук книги
+        /search_movie_admin - пошук фільму адміна
+        /search_game_admin - пошук гри адміна
+        /search_book_admin - пошук книги адміна
         
         Команди для перегляду:
         /list - список контенту,ігор, книг
+        /list_admin - список контенту,ігор, книг адміна
 
         Команди для адміністрування:
         /admin - адмін панель
