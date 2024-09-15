@@ -1,6 +1,6 @@
 from config import bot
 import os
-from functions.list import list_items
+from functions.listing import list_items
 from variables.globals import query_dict
 ADMIN_ID = os.environ.get('ADMIN_ID')
 
