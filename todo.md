@@ -18,3 +18,5 @@
 - [x] **Search**: `6` 🟡🔴
 - [ ] **English language**: `7` ⚪
 - [ ] **Fix button input**: `10` ⚪
+- [ ] **Search for my data**: `6` ⚪
+- [ ] **Fix data button loss when restart bot code** `4` ⚪
