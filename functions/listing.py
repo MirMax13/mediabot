@@ -52,12 +52,11 @@ def process_list_type(message):
         bot.register_next_step_handler(msg, process_years)
 
 
-def send_paginated_list(chat_id, page,year=None, years=None, title=None):
-    items_per_page = 73 # TODO: find out why 73 (why not 85)
+def send_paginated_list(chat_id, page,year=None, years=None, title=None, search_query=None):
+    items_per_page = 86 # TODO: issue?
     query = query_dict[chat_id]
-
     if title is not None:
-        query['title'] = {'$regex': title, '$options': 'i'}
+        query[str(title)] = {'$regex': search_query, '$options': 'i'}
     elif year is not None:
         query['year'] = year
     elif years is not None:
