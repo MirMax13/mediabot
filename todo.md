@@ -22,3 +22,4 @@
 - [ ] **Fix data button loss when restart bot code** `4` ⚪
 - [x] **Update search (rating,conditions)** `7` 🔵🟡🔴
 - [ ] **Add genre to books** `3` 🔴
+- [ ] **Upgrade rating choose** `4` ⚪
