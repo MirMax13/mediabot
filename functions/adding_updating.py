@@ -281,8 +281,7 @@ def save_info(message):
         media_data['conditions'] = params_dict[chat_id]['conditions']
     elif media_type[chat_id] == 'book':
         media_data['author'] = params_dict[chat_id]['author']
-    
-    db[media_type + 's'].insert_one(media_data)
+    db[media_type[chat_id] + 's'].insert_one(media_data)
     msg = messages[media_type[chat_id]]['adding']+ ' успішно додано!'
     bot.send_message(chat_id, msg, reply_markup=types.ReplyKeyboardRemove())
 

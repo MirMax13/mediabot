@@ -8,28 +8,57 @@ from commands.add_game import add_game
 from commands.add_book import add_book
 from telebot.util import quick_markup
 from telebot.types import Message
-from variables.globals import query_dict, media_type
+from variables.globals import query_dict, media_type, sort_preference
+
+
 
 def list_items(message):
     chat_id = message.chat.id
-    markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
+    markup = types.InlineKeyboardMarkup(row_width=1)
+    
     options = ['Фільми', 'Ігри', 'Книги']
     for option in options:
-        markup.add(option)
-    msg = bot.send_message(chat_id, 'Чого саме список бажаєш?', reply_markup=markup)
-    bot.register_next_step_handler(msg, process_list)
+        button = types.InlineKeyboardButton(option, callback_data=f"type_{option.lower()}")
+        markup.add(button)
+    current_sort = sort_preference.get(chat_id, "date")
+    sort_preference[chat_id] = current_sort
+    rating_button = types.InlineKeyboardButton(
+        f"{'✓ ' if current_sort == 'rating' else ''} За рейтингом", callback_data="sort_rating"
+    )
+    date_button = types.InlineKeyboardButton(
+        f"{'✓ ' if current_sort == 'date' else ''} За датою", callback_data="sort_date"
+    )
+    markup.add(rating_button, date_button)
+    
+    bot.send_message(chat_id, 'Чого саме список бажаєш?', reply_markup=markup)
 
-def process_list(message):
-    chat_id = message.chat.id
-    print(message.text)
-    if message.text == 'Фільми':
+@bot.callback_query_handler(func=lambda call: call.data.startswith("type_"))
+def handle_type_selection(call):
+    chat_id = call.message.chat.id
+    selected_type = call.data.split("_")[1]
+    media_type[chat_id] = selected_type
+    process_list(selected_type,chat_id)
+
+@bot.callback_query_handler(func=lambda call: call.data in ["sort_rating", "sort_date"])
+def handle_sort_selection(call):
+    chat_id = call.message.chat.id
+    
+    if call.data == "sort_rating":
+        sort_preference[chat_id] = "rating"
+    elif call.data == "sort_date":
+        sort_preference[chat_id] = "date"
+
+    list_items(call.message)
+
+def process_list(message,chat_id):
+    if message.lower() == 'фільми':
         media_type[chat_id] = 'film'
-    elif message.text == 'Ігри':
+    elif message.lower() == 'ігри':
         media_type[chat_id] = 'game'
-    elif message.text == 'Книги':
+    elif message.lower() == 'книги':
         media_type[chat_id] = 'book'
     else:
-        media_type[chat_id] = message.text
+        return
     bot.send_message(chat_id, 'Обробка вибору списку')
     markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
     options = ['Усі що є', 'За роком', 'За кількома роками']
@@ -53,20 +82,28 @@ def process_list_type(message):
 
 
 def send_paginated_list(chat_id, page,year=None, years=None, title=None, search_query=None):
-    items_per_page = 86 # TODO: issue?
-    query = query_dict[chat_id]
+    items_per_page = 84 # TODO: issue?
+    query = query_dict[chat_id] #TODO: implement rating and date sorting
     if title is not None:
         query[str(title)] = {'$regex': search_query, '$options': 'i'}
     elif year is not None:
         query['year'] = year
     elif years is not None:
         query['year'] = {'$in': years}
-    if 'film' in media_type[chat_id]:
-        all_items = list(db.films.find(query).sort('date', 1))
-    elif 'book' in media_type[chat_id]:
-        all_items = list(db.books.find(query).sort('date', 1))
-    elif 'game' in media_type[chat_id]:
-        all_items = list(db.games.find(query).sort([('rating', -1), ('title', 1)]))
+    if 'date' in sort_preference[chat_id]:
+        if 'film' in media_type[chat_id]:
+            all_items = list(db.films.find(query).sort('date', 1))
+        elif 'book' in media_type[chat_id]:
+            all_items = list(db.books.find(query).sort('date', 1))
+        elif 'game' in media_type[chat_id]:
+            all_items = list(db.games.find(query).sort([('date', 1), ('title', 1)]))
+    elif 'rating' in sort_preference[chat_id]:
+        if 'film' in media_type[chat_id]:
+            all_items = list(db.films.find(query).sort([('rating', -1), ('title', 1)]))
+        elif 'book' in media_type[chat_id]:
+            all_items = list(db.books.find(query).sort([('rating', -1), ('title', 1)]))
+        elif 'game' in media_type[chat_id]:
+            all_items = list(db.games.find(query).sort([('rating', -1), ('title', 1)]))
     total_pages = (len(all_items) + items_per_page - 1) // items_per_page
     start = page * items_per_page
     end = start + items_per_page
@@ -77,7 +114,7 @@ def send_paginated_list(chat_id, page,year=None, years=None, title=None, search_
         title = item.get('title', 'Немає назви')
         rating = item.get('rating', 'Немає оцінки')
         date = item.get('date', 'Немає дати')
-        button_text = f"{title} | {rating} | {date}"
+        button_text = f"{title} | {rating}/10 | {date}"
         button = types.InlineKeyboardButton(text=button_text, callback_data=f"{media_type[chat_id]}_{item['_id']}")
         markup.add(button)
 
@@ -180,7 +217,7 @@ def send_media_info(call):
 def delete_media(call):
     chat_id = call.message.chat.id
     media_id = call.data.split('_')[1]
-    db[media_type + 's'].delete_one({'_id': ObjectId(media_id)})
+    db[media_type[chat_id] + 's'].delete_one({'_id': ObjectId(media_id)})
     if media_type == 'film':
         msg = 'Фільм видалено.'
     elif media_type == 'game':
@@ -212,7 +249,6 @@ def edit_media(call):
 @bot.callback_query_handler(func=lambda call: call.data.startswith('edit_'))
 def edit_smth(call):
     chat_id = call.message.chat.id
-    print("calldata:",call.data)
     attribute, _, media_id = call.data.split('_')[1:] #TODO: refactor this
     params_dict[chat_id] = {'media_id': media_id, 'media_type': media_type[chat_id],'state': f'editing_{attribute}'} #TODO: refactor this?
     if attribute == 'title' or attribute == 'all':
