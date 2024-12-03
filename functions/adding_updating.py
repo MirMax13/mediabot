@@ -23,7 +23,7 @@ messages = {
     },
     'book': {
         'editing': {
-            'date': "Коли ти читав книгу? Вибери кнопку"
+            'date': "Коли ти востаннє читав книгу? Вибери кнопку"
         },
         'adding': "Книгу",
     }
@@ -97,7 +97,7 @@ def process_rating(message):
         params_dict[chat_id] = {}
     else:
         params_dict[chat_id]['rating'] = rating
-        ask_for_review(message,)
+        ask_for_review(message)
 
 def ask_for_review(message):
     msg = bot.send_message(message.chat.id, 'Відгук (або введи -, щоб пропустити"):')

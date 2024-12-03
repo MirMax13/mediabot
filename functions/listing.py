@@ -58,7 +58,8 @@ def process_list(message,chat_id):
     elif message.lower() == 'книги':
         media_type[chat_id] = 'book'
     else:
-        return
+        print("Media type:")
+        print(media_type)
     bot.send_message(chat_id, 'Обробка вибору списку')
     markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
     options = ['Усі що є', 'За роком', 'За кількома роками']
@@ -82,7 +83,9 @@ def process_list_type(message):
 
 
 def send_paginated_list(chat_id, page,year=None, years=None, title=None, search_query=None):
-    items_per_page = 84 # TODO: issue?
+    items_per_page = 80 # TODO: issue?
+    if chat_id not in query_dict:
+        query_dict[chat_id] = {}
     query = query_dict[chat_id] #TODO: implement rating and date sorting
     if title is not None:
         query[str(title)] = {'$regex': search_query, '$options': 'i'}
@@ -90,6 +93,8 @@ def send_paginated_list(chat_id, page,year=None, years=None, title=None, search_
         query['year'] = year
     elif years is not None:
         query['year'] = {'$in': years}
+    if chat_id not in sort_preference:
+        sort_preference[chat_id] = {}
     if 'date' in sort_preference[chat_id]:
         if 'film' in media_type[chat_id]:
             all_items = list(db.films.find(query).sort('date', 1))
@@ -97,7 +102,7 @@ def send_paginated_list(chat_id, page,year=None, years=None, title=None, search_
             all_items = list(db.books.find(query).sort('date', 1))
         elif 'game' in media_type[chat_id]:
             all_items = list(db.games.find(query).sort([('date', 1), ('title', 1)]))
-    elif 'rating' in sort_preference[chat_id]:
+    else:
         if 'film' in media_type[chat_id]:
             all_items = list(db.films.find(query).sort([('rating', -1), ('title', 1)]))
         elif 'book' in media_type[chat_id]:
@@ -271,7 +276,6 @@ def edit_smth(call):
         
 @bot.callback_query_handler(func=lambda call: call.data.startswith('back_to_list_'))
 def back_to_list(call):
-
     message = Message(
         message_id=call.message.message_id,
         from_user=call.from_user,
@@ -281,6 +285,9 @@ def back_to_list(call):
         options={},
         json_string=None,
     )
-    message.text = media_type[call.message.chat.id]  
-
-    process_list(message)
+    chat_id = call.message.chat.id
+    if media_type.get(chat_id) is None:
+        media_type[chat_id] = 'film'
+    message.text = media_type[chat_id]  
+    
+    process_list(message.text,chat_id)
