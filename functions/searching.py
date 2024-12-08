@@ -61,10 +61,10 @@ def process_search_option(message):
         msg = bot.send_message(chat_id, "Який рейтинг?")
     elif option == 'По відгуку':
         search_query = 'review'
-        msg = bot.send_message(chat_id, "Якого відгуку шукати?")
+        msg = bot.send_message(chat_id, "Введіть текст відгуку")
     elif option == 'По році':
         search_query = 'year'
-        msg = bot.send_message(chat_id, "Якого року шукати?")
+        msg = bot.send_message(chat_id, "Котрого року шукати?")
     elif option == 'По умовах':
         if media_type[chat_id] == 'film' or media_type[chat_id] == 'game':
             search_query = 'conditions'
