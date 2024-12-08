@@ -17,7 +17,7 @@ def process_many_games(message):
     text = message.text
     lines = text.split('\n')
     
-    # Мапа українських місяців на англійські
+    # Мапа українських місяців на англійській
     uk_to_en_months = {
         'січня': 'January', 'лютого': 'February', 'березня': 'March', 'квітня': 'April',
         'травня': 'May', 'червня': 'June', 'липня': 'July', 'серпня': 'August',
