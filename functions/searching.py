@@ -6,6 +6,18 @@ from telebot import types
 
 ADMIN_ID = os.getenv('ADMIN_ID')
 
+messages = {
+    'film': {
+        'name': "Як називався фільм?",
+
+    },
+    'game': {
+        'name': "Як називалася гра?",
+    },
+    'book': {
+        'name': "Як називалася книга?",
+    }
+}
 
 def process_search_user(message):
     chat_id = message.chat.id
@@ -18,7 +30,8 @@ def process_search_user(message):
     msg = bot.send_message(chat_id, "По чому шукати?", reply_markup=markup)
     bot.register_next_step_handler(msg, process_search_option)
 
-def process_search_admin(message):
+def process_search_admin(message): 
+    # TODO: Refactor
     chat_id = message.chat.id
     query = {'user_id': int(ADMIN_ID)}
     query_dict[chat_id] = query
@@ -34,8 +47,9 @@ def process_search_option(message):
     option = message.text
     if option == 'По назві':
         search_query = 'title'
-        msg = bot.send_message(chat_id, "Як називався фільм?")
-    # elif option == 'По жанру':
+        msg = bot.send_message(chat_id, messages[media_type[chat_id]]['name'])
+    
+    # elif option == 'По жанру': #TODO: Add 'По жанру'
     #     if media_type[chat_id] == 'book':
     #         search_query = 'genre'
     #         msg = bot.send_message(chat_id, "Який жанр?")
