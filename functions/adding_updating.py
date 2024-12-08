@@ -178,6 +178,7 @@ def process_custom_date(message):
         media_id = params_dict[chat_id]['media_id']
         print("media_id: ", media_id)
         db[media_type[chat_id] + 's'].update_one({'_id': ObjectId(media_id)}, {'$set': {'date': full_date}})
+        db[media_type[chat_id] + 's'].update_one({'_id': ObjectId(media_id)}, {'$set': {'year': year}})
         markup = types.InlineKeyboardMarkup()
         add_back_button(markup, media_id,chat_id)
         bot.send_message(chat_id, f"Дата змінена на '{full_date}'", reply_markup=markup)
