@@ -10,6 +10,7 @@ from commands.search_movie import search_user_movie, search_admin_movie
 from commands.search_game import search_user_game, search_admin_game
 from commands.search_book import search_user_book, search_admin_book
 from commands.admin import admin_panel
+from commands.change_language import change_language
 
 bot.message_handler(commands=['add_movie'])(add_movie)
 bot.message_handler(commands=['add_game'])(add_game)
@@ -26,6 +27,7 @@ bot.message_handler(commands=['search_movie_admin'])(search_admin_movie)
 bot.message_handler(commands=['search_game_admin'])(search_admin_game)
 bot.message_handler(commands=['search_book_admin'])(search_admin_book)
 bot.message_handler(commands=['admin'])(admin_panel)
+bot.message_handler(commands=['change_language'])(change_language)
 
 
 bot.delete_webhook()
