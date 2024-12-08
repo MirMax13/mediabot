@@ -68,7 +68,24 @@ def process_search_option(message):
     elif option == 'По умовах':
         if media_type[chat_id] == 'film' or media_type[chat_id] == 'game':
             search_query = 'conditions'
-            msg = bot.send_message(chat_id, "Які умови шукати?")
+            markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
+            if media_type[chat_id] == 'film':
+                options = ['Сам вдома', 'З кимось вдома', 'На великих екранах', 'Невідомо', 'Інше']
+            elif media_type[chat_id] == 'game':
+                ['Пройшов', 'Подивився', 'Грав', 'Дивився',
+                    'Подивився повністю, а потім зіграв',
+                    'Подивився повністю, а потім пройшов повністю',
+                    'Дивився, а потім зіграв','Слухав сюжет',
+                    'Дивився, а потім слухав сюжет, а потім зіграв','Дивився, а потім слухав сюжет',
+                    'Грав (неможливо пройти)','Дивився, а потім грав (неможливо пройти)',
+                    'Пройшов разом з DLC','Дивився, а потім пройшов разом з DLC',
+                    'Невідомо']
+            for option in options:
+                markup.add(option)
+            if media_type[chat_id] == 'film':
+                msg = bot.send_message(chat_id, 'Як ти дивився фільм?', reply_markup=markup)
+            elif media_type[chat_id] == 'game':
+                msg = bot.send_message(chat_id, 'Грав/дивився?', reply_markup=markup)
         else:
             msg = bot.send_message(chat_id, "Умови доступні тільки для фільмів та ігор. Оберіть інший варіант.")
             bot.register_next_step_handler(msg, process_search_option)
