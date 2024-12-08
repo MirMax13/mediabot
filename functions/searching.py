@@ -80,4 +80,10 @@ def process_search_option(message):
 def process_search(message,option):
     chat_id = message.chat.id
     search_query = message.text
-    send_paginated_list(chat_id, 0, title=option, search_query=search_query)
+    if option == 'rating':
+        try:
+            search_query = float(search_query)
+        except ValueError:
+            bot.send_message(chat_id, "Будь ласка, введіть дійсний рейтинг.")
+            return
+    send_paginated_list(chat_id, 0, option=option, search_query=search_query)

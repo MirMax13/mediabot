@@ -82,13 +82,16 @@ def process_list_type(message):
         bot.register_next_step_handler(msg, process_years)
 
 
-def send_paginated_list(chat_id, page,year=None, years=None, title=None, search_query=None):
+def send_paginated_list(chat_id, page,year=None, years=None, option=None, search_query=None):
     items_per_page = 80 # TODO: issue?
     if chat_id not in query_dict:
         query_dict[chat_id] = {}
     query = query_dict[chat_id] #TODO: implement rating and date sorting
-    if title is not None:
-        query[str(title)] = {'$regex': search_query, '$options': 'i'}
+    if option is not None:
+       if option == 'rating':
+            query[option] = search_query
+       else:
+            query[str(option)] = {'$regex': search_query, '$options': 'i'}
     elif year is not None:
         query['year'] = year
     elif years is not None:
