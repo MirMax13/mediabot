@@ -224,13 +224,15 @@ def send_media_info(call):
 @bot.callback_query_handler(func=lambda call: call.data.startswith(('delete_film_', 'delete_game_', 'delete_book_')))
 def delete_media(call):
     chat_id = call.message.chat.id
-    media_id = call.data.split('_')[1]
+    media_id = call.data.split('_')[2]
+    print(media_id)
+    params_dict[chat_id] = {'media_id': media_id}
     db[media_type[chat_id] + 's'].delete_one({'_id': ObjectId(media_id)})
-    if media_type == 'film':
+    if media_type[chat_id] == 'film':
         msg = 'Фільм видалено.'
-    elif media_type == 'game':
+    elif media_type[chat_id] == 'game':
         msg = 'Гру видалено.'
-    elif media_type == 'book':
+    elif media_type[chat_id] == 'book':
         msg = 'Книгу видалено.'
     bot.send_message(chat_id, msg)
 
