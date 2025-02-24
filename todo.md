@@ -23,3 +23,6 @@
 - [x] **Update search (rating,conditions)** `7` 🔵🟡🔴
 - [ ] **Add genre to books** `3` 🔴
 - [ ] **Upgrade rating choose** `4` ⚪
+- [ ] **Modify list for searching** `9` ⚪
+- [x] **Add type and counter for series/movie/anime** `7` 🔵
+- [ ] **Change name of variables/Refactor code (media to entertainment, movie to media, films table to media)** `6` ⚪
