@@ -108,31 +108,31 @@ def send_paginated_list(chat_id, page,year=None, years=None, option=None, search
     if chat_id not in sort_preference:
         sort_preference[chat_id] = {}
     if 'date' in sort_preference[chat_id]:
-        if 'film' in movie_type[chat_id]:
+        if movie_type.get(chat_id) == 'film':
             all_items = list(db.films.find({'type': 'film', **query}).sort('date', 1))
         elif 'book' in media_type[chat_id]:
             all_items = list(db.books.find(query).sort('date', 1))
         elif 'game' in media_type[chat_id]:
             all_items = list(db.games.find(query).sort([('date', 1), ('title', 1)]))
-        elif 'anime' in movie_type[chat_id]:
+        elif movie_type.get(chat_id) == 'anime':
             all_items = list(db.films.find({'type': 'anime', **query}).sort('date', 1))
-        elif 'serial' in movie_type[chat_id]:
+        elif movie_type.get(chat_id) == 'serial':
             all_items = list(db.films.find({'type': 'serial', **query}).sort('date', 1))
-        elif 'media' in movie_type[chat_id]:
+        elif movie_type.get(chat_id) == 'media':
             all_items = list(db.films.find(query).sort('date', 1))
 
     else:
-        if 'film' in movie_type[chat_id]:
+        if movie_type.get(chat_id) == 'film':
             all_items = list(db.films.find({'type': 'film', **query}).sort([('rating', -1), ('title', 1)]))
         elif 'book' in media_type[chat_id]:
             all_items = list(db.books.find(query).sort([('rating', -1), ('title', 1)]))
         elif 'game' in media_type[chat_id]:
             all_items = list(db.games.find(query).sort([('rating', -1), ('title', 1)]))
-        elif 'anime' in movie_type[chat_id]:
+        elif movie_type.get(chat_id) == 'anime':
             all_items = list(db.films.find({'type': 'anime', **query}).sort([('rating', -1), ('title', 1)]))
-        elif 'serial' in movie_type[chat_id]:
+        elif movie_type.get(chat_id) == 'serial':
             all_items = list(db.films.find({'type': 'serial', **query}).sort([('rating', -1), ('title', 1)]))
-        elif 'media' in movie_type[chat_id]:
+        elif movie_type.get(chat_id) == 'media':
             all_items = list(db.films.find(query).sort([('rating', -1), ('title', 1)]))
     total_pages = (len(all_items) + items_per_page - 1) // items_per_page
     start = page * items_per_page
