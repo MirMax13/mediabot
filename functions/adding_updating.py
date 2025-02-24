@@ -117,6 +117,39 @@ def process_review(message):
         params_dict[chat_id]['review'] = review
         ask_for_date(message)
 
+
+def ask_for_type(message):
+    chat_id = message.chat.id
+    markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
+    options = ['Фільм', 'Аніме', 'Серіал', 'Невідомо']
+    for option in options:
+        markup.add(option)
+    msg = bot.send_message(chat_id, 'Обери тип контенту:', reply_markup=markup)
+    bot.register_next_step_handler(msg, process_type)
+
+def process_type(message):
+    type = message.text
+    if type == 'Фільм':
+        type = 'film'
+    elif type == 'Аніме':
+        type = 'anime'
+    elif type == 'Серіал':
+        type = 'serial'
+    else:
+        type = None
+    chat_id = message.chat.id
+    # TODO: Upgrade
+    if 'state' in params_dict[chat_id] and params_dict[chat_id]['state'] == 'editing_type': 
+        media_id = params_dict[chat_id]['media_id']
+        db[media_type[chat_id] + 's'].update_one({'_id': ObjectId(media_id)}, {'$set': {'type': type}})
+        markup = types.InlineKeyboardMarkup()
+        add_back_button(markup, media_id,chat_id)
+        bot.send_message(chat_id, f"Тип змінено на '{type}'", reply_markup=markup)
+        params_dict[chat_id] = {}
+    # else:
+    #     params_dict[chat_id]['type'] = type
+    #     ask_for_rating(message)
+
 def ask_for_date(message):
     chat_id = message.chat.id
     markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
@@ -261,6 +294,9 @@ def process_custom_conditions(message):
             params_dict[chat_id] = {}
     else:
         save_info(message)
+
+
+
     
 def save_info(message):
     chat_id = message.chat.id

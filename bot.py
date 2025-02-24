@@ -1,5 +1,7 @@
 from config import bot
 from commands.add_movie import add_movie
+from commands.add_serial import add_serial
+from commands.add_anime import add_anime
 from commands.add_game import add_game
 from commands.add_book import add_book
 from commands.list_items import list_user_items, list_admin_items
@@ -13,6 +15,8 @@ from commands.admin import admin_panel
 from commands.change_language import change_language
 
 bot.message_handler(commands=['add_movie'])(add_movie)
+bot.message_handler(commands=['add_serial'])(add_serial)
+bot.message_handler(commands=['add_anime'])(add_anime)
 bot.message_handler(commands=['add_game'])(add_game)
 bot.message_handler(commands=['add_book'])(add_book)
 bot.message_handler(commands=['list'])(list_user_items)
