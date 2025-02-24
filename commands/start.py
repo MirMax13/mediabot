@@ -10,6 +10,8 @@ def send_welcome(message):
 
         Команди для додавання:
         /add_movie - додати фільм
+        /add_serial = додати серіал
+        /add_anime - додати аніме
         /add_game - додати гру
         /add_book - додати книгу
         /add_many_movies - додати багато фільмів (лише адмін)
