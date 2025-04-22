@@ -109,15 +109,15 @@ def send_paginated_list(chat_id, page,year=None, years=None, option=None, search
         sort_preference[chat_id] = {}
     if 'date' in sort_preference[chat_id]:
         if movie_type.get(chat_id) == 'film':
-            all_items = list(db.films.find({'type': 'film', **query}).sort('date', 1))
+            all_items = list(db.films.find({'type': 'film', **query}).sort('date', -1))
         elif 'book' in media_type[chat_id]:
-            all_items = list(db.books.find(query).sort('date', 1))
+            all_items = list(db.books.find(query).sort('date', -1))
         elif 'game' in media_type[chat_id]:
-            all_items = list(db.games.find(query).sort([('date', 1), ('title', 1)]))
+            all_items = list(db.games.find(query).sort([('date', -1), ('title', 1)]))
         elif movie_type.get(chat_id) == 'anime':
-            all_items = list(db.films.find({'type': 'anime', **query}).sort('date', 1))
+            all_items = list(db.films.find({'type': 'anime', **query}).sort('date', -1))
         elif movie_type.get(chat_id) == 'serial':
-            all_items = list(db.films.find({'type': 'serial', **query}).sort('date', 1))
+            all_items = list(db.films.find({'type': 'serial', **query}).sort('date', -1))
         elif movie_type.get(chat_id) == 'media':
             all_items = list(db.films.find(query).sort('date', 1))
 
