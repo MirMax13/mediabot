@@ -57,17 +57,22 @@ def ask_for_author(message):
     bot.register_next_step_handler(msg, process_author)
 
 def process_author(message):
-    author = message.text if message.text.lower() != '-' else None
     chat_id = message.chat.id
+    author_input = message.text.strip()
+    if author_input.lower() == '-':
+        authors = None
+    else:
+        authors = [author.strip() for author in author_input.split(',') if author.strip()]
+    
     if 'state' in params_dict[chat_id] and params_dict[chat_id]['state'] == 'editing_author':
         media_id = params_dict[chat_id]['media_id']
-        db[media_type[chat_id] + 's'].update_one({'_id': ObjectId(media_id)}, {'$set': {'author': author}})
+        db[media_type[chat_id] + 's'].update_one({'_id': ObjectId(media_id)}, {'$set': {'author': authors}})
         markup = types.InlineKeyboardMarkup()
         add_back_button(markup, media_id,chat_id)
-        bot.send_message(chat_id, f"Автора змінено на '{author}'", reply_markup=markup)
+        bot.send_message(chat_id, f"Автор(и) змінено на '{', '.join(authors) if authors else 'Немає'}'", reply_markup=markup)
         params_dict[chat_id] = {}
     else:
-        params_dict[chat_id]['author'] = author
+        params_dict[chat_id]['author'] = authors
         ask_for_rating(message)
 
 
