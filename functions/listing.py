@@ -3,9 +3,9 @@ from db import db
 from bson import ObjectId
 from config import bot,params_dict
 from functions.adding_updating import ask_for_rating, ask_for_review, ask_for_date, ask_for_conditions,ask_for_author,ask_for_type
-from commands.add_movie import add_movie
-from commands.add_game import add_game
-from commands.add_book import add_book
+from commands.titles.adding.add_movie import add_movie
+from commands.games.add_game import add_game
+from commands.books.add_book import add_book
 from telebot.util import quick_markup
 from telebot.types import Message
 from variables.globals import query_dict, media_type, sort_preference,movie_type

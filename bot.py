@@ -1,16 +1,16 @@
 from config import bot
-from commands.add_movie import add_movie
-from commands.add_serial import add_serial
-from commands.add_anime import add_anime
-from commands.add_game import add_game
-from commands.add_book import add_book
+from commands.titles.adding.add_movie import add_movie
+from commands.titles.adding.add_serial import add_serial
+from commands.titles.adding.add_anime import add_anime
+from commands.games.add_game import add_game
+from commands.books.add_book import add_book
 from commands.list_items import list_user_items, list_admin_items
-from commands.add_many_movies import add_many_movies
-from commands.add_many_games import add_many_games
+from commands.titles.adding.add_many_movies import add_many_movies
+from commands.games.add_many_games import add_many_games
 from commands.start import send_welcome
-from commands.search_movie import search_user_movie, search_admin_movie
-from commands.search_game import search_user_game, search_admin_game
-from commands.search_book import search_user_book, search_admin_book
+from commands.titles.searching.search_movie import search_user_movie, search_admin_movie
+from commands.games.search_game import search_user_game, search_admin_game
+from commands.books.search_book import search_user_book, search_admin_book
 from commands.admin import admin_panel
 from commands.change_language import change_language
 
