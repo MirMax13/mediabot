@@ -10,15 +10,13 @@ from telebot.util import quick_markup
 from telebot.types import Message
 from variables.globals import query_dict, media_type, sort_preference,movie_type
 
-
-
 def list_items(message):
     chat_id = message.chat.id
     markup = types.InlineKeyboardMarkup(row_width=1)
     
-    options = ['Медіа', 'Ігри', 'Книги','Фільми', 'Серіали', 'Аніме']
+    options = ['Ігри', 'Книги', 'Медіа']
     for option in options:
-        button = types.InlineKeyboardButton(option, callback_data=f"type_{option.lower()}")
+        button = types.InlineKeyboardButton(option, callback_data=f"main_{option.lower()}")
         markup.add(button)
     current_sort = sort_preference.get(chat_id, "date")
     sort_preference[chat_id] = current_sort
@@ -29,8 +27,71 @@ def list_items(message):
         f"{'✓ ' if current_sort == 'date' else ''} За датою", callback_data="sort_date"
     )
     markup.add(rating_button, date_button)
+    bot.send_message(chat_id, 'Що саме цікавить?', reply_markup=markup)
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("main_"))
+def handle_main_selection(call):
+    chat_id = call.message.chat.id
+    selected_main = call.data.split("_")[1]
     
-    bot.send_message(chat_id, 'Чого саме список бажаєш?', reply_markup=markup)
+    if selected_main == 'медіа':
+        markup = types.InlineKeyboardMarkup(row_width=1)
+        options = ['Фільми', 'Серіали', 'Аніме', 'Мультфільми','Усе']
+        for option in options:
+            button = types.InlineKeyboardButton(option, callback_data=f"media_{option.lower()}")
+            markup.add(button)
+        bot.send_message(chat_id, 'Окей, яке саме медіа?', reply_markup=markup)
+    else:
+        media_type[chat_id] = selected_main
+        process_list(selected_main, chat_id)
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("media_"))
+def handle_media_selection(call):
+    chat_id = call.message.chat.id
+    selected_media = call.data.split("_")[1]
+    
+    if selected_media in ['аніме', 'мультфільми']:
+        markup = types.InlineKeyboardMarkup(row_width=1)
+        if selected_media == 'аніме':
+            options = ['Аніме фільми', 'Аніме серіали', 'Усе аніме']
+        else:
+            options = ['Мультфільми', 'Мультсеріали', 'Усе мультики']
+        for option in options:
+            button = types.InlineKeyboardButton(option, callback_data=f"submedia_{option.lower().replace(' ', '_')}")
+            markup.add(button)
+        bot.send_message(chat_id, 'Що саме?', reply_markup=markup)
+    else:
+        media_type[chat_id] = 'film'
+        if selected_media == 'фільми':
+            movie_type[chat_id] = 'film'
+        elif selected_media == 'серіали':
+            movie_type[chat_id] = 'series'
+        else:
+            movie_type[chat_id] = 'media'
+        process_list(selected_media, chat_id)
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("submedia_"))
+def handle_submedia_selection(call):
+    chat_id = call.message.chat.id
+    selected_submedia = call.data.split("_", 1)[1]
+    
+    media_type[chat_id] = 'film'
+    if selected_submedia == 'аніме_фільми':
+        movie_type[chat_id] = 'anime_movies'
+    elif selected_submedia == 'аніме_серіали':
+        movie_type[chat_id] = 'anime_series'
+    elif selected_submedia == 'усе_аніме':
+        movie_type[chat_id] = 'anime'
+    elif selected_submedia == 'мультфільми':
+        movie_type[chat_id] = 'animated_movie'
+    elif selected_submedia == 'мультсеріали':
+        movie_type[chat_id] = 'animated_series'
+    elif selected_submedia == 'усе_мультики':
+        movie_type[chat_id] = 'animated'
+    elif selected_submedia == 'усе':
+        movie_type[chat_id] = 'media'
+    
+    process_list(selected_submedia, chat_id)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("type_"))
 def handle_type_selection(call):
@@ -51,24 +112,11 @@ def handle_sort_selection(call):
     list_items(call.message)
 
 def process_list(message,chat_id):
-    if message.lower() == 'фільми' or message.lower() == 'аніме' or message.lower() == 'серіали' or message.lower() == 'медіа':
-        media_type[chat_id] = 'film'
-        if message.lower() == 'фільми':
-            movie_type[chat_id] = 'film'
-        elif message.lower() == 'аніме':
-            movie_type[chat_id] = 'anime'
-        elif message.lower() == 'серіали':
-            movie_type[chat_id] = 'serial'
-        elif message.lower() == 'медіа':
-            movie_type[chat_id] = 'media'
-    elif message.lower() == 'ігри':
+    if message.lower() == 'ігри':
         media_type[chat_id] = 'game'
     elif message.lower() == 'книги':
         media_type[chat_id] = 'book'
-    
-    else:
-        print("Media type:")
-        print(media_type)
+    print(media_type)
     bot.send_message(chat_id, 'Обробка вибору списку')
     markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
     options = ['Усі що є', 'За роком', 'За кількома роками']
