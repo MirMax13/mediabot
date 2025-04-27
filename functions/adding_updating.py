@@ -126,30 +126,36 @@ def process_review(message):
 def ask_for_type(message):
     chat_id = message.chat.id
     markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
-    options = ['Фільм', 'Аніме', 'Серіал', 'Невідомо']
+    options = ['Фільм', 'Аніме Фільм',  'Аніме Серіал', 'Серіал', 'Мультфільм','Мультсеріал','Невідомо']
     for option in options:
         markup.add(option)
     msg = bot.send_message(chat_id, 'Обери тип контенту:', reply_markup=markup)
     bot.register_next_step_handler(msg, process_type)
 
 def process_type(message):
-    type = message.text
-    if type == 'Фільм':
-        type = 'film'
-    elif type == 'Аніме':
-        type = 'anime'
-    elif type == 'Серіал':
-        type = 'serial'
+    m_type = message.text
+    if m_type == 'Фільм':
+        m_type = 'film'
+    elif m_type == 'Аніме Фільм':
+        m_type = 'anime_movie'
+    elif m_type == 'Аніме Серіал':
+        m_type = 'anime_series'
+    elif m_type == 'Серіал':
+        m_type = 'series'
+    elif m_type == 'Мультфільм':
+        m_type = 'animated_movie'
+    elif m_type == 'Мультсеріал':
+        m_type = 'animated_series'
     else:
-        type = None
+        m_type = None
     chat_id = message.chat.id
     # TODO: Upgrade
     if 'state' in params_dict[chat_id] and params_dict[chat_id]['state'] == 'editing_type': 
         media_id = params_dict[chat_id]['media_id']
-        db[media_type[chat_id] + 's'].update_one({'_id': ObjectId(media_id)}, {'$set': {'type': type}})
+        db[media_type[chat_id] + 's'].update_one({'_id': ObjectId(media_id)}, {'$set': {'type': m_type}})
         markup = types.InlineKeyboardMarkup()
         add_back_button(markup, media_id,chat_id)
-        bot.send_message(chat_id, f"Тип змінено на '{type}'", reply_markup=markup)
+        bot.send_message(chat_id, f"Тип змінено на '{m_type}'", reply_markup=markup)
         params_dict[chat_id] = {}
     # else:
     #     params_dict[chat_id]['type'] = type
