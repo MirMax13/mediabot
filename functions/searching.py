@@ -83,7 +83,7 @@ def process_search_option(message):
             for option in options:
                 markup.add(option)
             if media_type[chat_id] == 'film':
-                msg = bot.send_message(chat_id, 'Як ти дивився фільм?', reply_markup=markup)
+                msg = bot.send_message(chat_id, 'Як ти дивився?', reply_markup=markup)
             elif media_type[chat_id] == 'game':
                 msg = bot.send_message(chat_id, 'Грав/дивився?', reply_markup=markup)
         else:
