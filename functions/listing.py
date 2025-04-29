@@ -163,10 +163,10 @@ def send_paginated_list(chat_id, page,year=None, years=None, option=None, search
         elif 'game' in media_type[chat_id]:
             all_items = list(db.games.find(query).sort([('date', -1), ('title', 1)]))
         elif 'film' in media_type[chat_id]:
-            if movie_type_value in ['film', 'anime_series', 'anime_movies', 'series', 'animated_series', 'animated_movie'] :
+            if movie_type_value in ['film', 'anime_series', 'anime_movie', 'series', 'animated_series', 'animated_movie'] :
                 match_query = {'type': movie_type_value, **query}
             elif movie_type.get(chat_id) == 'anime':
-                match_query = {'type': {'$in': ['anime_series', 'anime_movies']}, **query}
+                match_query = {'type': {'$in': ['anime_series', 'anime_movie']}, **query}
             elif movie_type.get(chat_id) == 'animated':
                 match_query = {'type': {'$in': ['animated_series', 'animated_movie']}, **query}
             else:
@@ -185,17 +185,16 @@ def send_paginated_list(chat_id, page,year=None, years=None, option=None, search
                     {'$sort': {'sort_date': -1, 'title': 1}},
                     {'$unset': 'sort_date'}
                 ]))
-            all_items = list(db.films.find(match_query).sort([('date', -1), ('title', 1)]))
     else:
         if 'book' in media_type[chat_id]:
             all_items = list(db.books.find(query).sort([('rating', -1), ('title', 1)]))
         elif 'game' in media_type[chat_id]:
             all_items = list(db.games.find(query).sort([('rating', -1), ('title', 1)]))
         elif 'film' in media_type[chat_id]:
-            if movie_type_value in ['film', 'anime_series', 'anime_movies', 'series', 'animated_series', 'animated_movie']:
+            if movie_type_value in ['film', 'anime_series', 'anime_movie', 'series', 'animated_series', 'animated_movie']:
                 match_query = {'type': movie_type_value, **query}
             elif movie_type.get(chat_id) == 'anime':
-                match_query = {'type': {'$in': ['anime_series', 'anime_movies']}, **query}
+                match_query = {'type': {'$in': ['anime_series', 'anime_movie']}, **query}
             elif movie_type.get(chat_id) == 'animated':
                 match_query = {'type': {'$in': ['animated_series', 'animated_movie']}, **query}
             else:
