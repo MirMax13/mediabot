@@ -164,7 +164,7 @@ def process_type(message):
 def ask_for_date(message):
     chat_id = message.chat.id
     markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
-    options = ['Сьогодні', 'Раніше', 'Невідомо']
+    options = ['Сьогодні', 'Вчора','Раніше', 'Невідомо']
     for option in options:
         markup.add(option)
     msg = bot.send_message(chat_id, messages[media_type[chat_id]]['editing']['date'], reply_markup=markup)
@@ -176,6 +176,9 @@ def process_date(message):
     if date == 'Сьогодні':
         full_date = datetime.datetime.now().strftime('%Y-%m-%d')
         year = datetime.datetime.now().year
+    elif date == 'Вчора':
+        full_date = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime('%Y-%m-%d')
+        year = (datetime.datetime.now() - datetime.timedelta(days=1)).year
     elif date == 'Раніше':
         msg = bot.send_message(chat_id, 'Введи дату у форматі рік-місяць-день:')
         bot.register_next_step_handler(msg, process_custom_date)
