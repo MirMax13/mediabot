@@ -5,7 +5,7 @@ from db import db
 from config import bot, params_dict
 from functions.admin_check import is_user_admin
 import os
-from variables.globals import media_type
+from variables.globals import media_type, movie_type
 
 MAX_RECORDS_PER_USER = int(os.getenv('MAX_RECORDS_PER_USER', 300))
 messages = {
@@ -335,6 +335,8 @@ def save_info(message):
         'year':  params_dict[chat_id]['year'],
         'date': params_dict[chat_id]['full_date']
     }
+    if media_type[chat_id] == 'film':
+        media_data['type'] = movie_type[chat_id] #TODO: Upgrade
     if media_type[chat_id] in ['film', 'game']:
         media_data['conditions'] = params_dict[chat_id]['conditions']
     elif media_type[chat_id] == 'book':
@@ -353,6 +355,8 @@ def update_info(message):
     year = params_dict[chat_id].get('year')
     conditions = params_dict[chat_id].get('conditions')
     author = params_dict[chat_id].get('author')
+    type = movie_type[chat_id] #TODO: Upgrade
+
 
     update_data = {}
     if title:
@@ -365,7 +369,8 @@ def update_info(message):
         update_data['date'] = full_date
     if year:
         update_data['year'] = year
-
+    if media_type[chat_id] == 'film':
+        update_data['type'] = type
     if media_type[chat_id] in ['film', 'game'] and conditions:
         update_data['conditions'] = conditions
     elif media_type[chat_id] == 'book' and author:
