@@ -310,7 +310,19 @@ def process_custom_conditions(message):
         save_info(message)
 
 
-
+def markup_buttons(chat_id, media_id, media_data):
+    markup = types.InlineKeyboardMarkup()
+    if chat_id != media_data['user_id']:
+        markup = quick_markup({
+            'Назад': {'callback_data': f'back_to_list_{media_type[chat_id]}'}
+        })
+    else:
+        markup = quick_markup({
+            'Назад': {'callback_data': f'back_to_list_{media_type[chat_id]}'},
+            'Редагувати': {'callback_data': f'edit_{media_type[chat_id]}_{media_id}'},
+            'Видалити': {'callback_data': f'delete_{media_type[chat_id]}_{media_id}'}
+        })
+    return markup
     
 def save_info(message):
     chat_id = message.chat.id

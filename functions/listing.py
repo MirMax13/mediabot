@@ -2,7 +2,7 @@ from telebot import types
 from db import db
 from bson import ObjectId
 from config import bot,params_dict
-from functions.adding_updating import ask_for_rating, ask_for_review, ask_for_date, ask_for_conditions,ask_for_author,ask_for_type
+from functions.adding_updating import ask_for_rating, ask_for_review, ask_for_date, ask_for_conditions,ask_for_author,ask_for_type,markup_buttons
 from commands.titles.adding.add_movie import add_movie
 from commands.games.add_game import add_game
 from commands.books.add_book import add_book
@@ -263,16 +263,7 @@ def send_media_info(call):
     media = db[media_type[chat_id] + 's'].find_one({'_id': ObjectId(media_id)})
     
     if media:
-        if chat_id != media['user_id']:
-            markup = quick_markup({
-                'Назад': {'callback_data': f'back_to_list_{media_type[chat_id]}'}
-            })
-        else:
-            markup = quick_markup({
-                'Назад': {'callback_data': f'back_to_list_{media_type[chat_id]}'},
-                'Редагувати': {'callback_data': f'edit_{media_type[chat_id]}_{media_id}'},
-                'Видалити': {'callback_data': f'delete_{media_type[chat_id]}_{media_id}'}
-            })
+        markup = markup_buttons(chat_id, media_id, media)
 
         title = media.get('title', 'Немає назви')
         rating = media.get('rating', 'Немає оцінки')
