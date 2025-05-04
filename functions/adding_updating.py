@@ -6,7 +6,7 @@ from config import bot, params_dict
 from functions.admin_check import is_user_admin
 import os
 from variables.globals import media_type, movie_type
-from telebot.util import quick_markup
+from functions.markup_buttons import markup_buttons
 
 MAX_RECORDS_PER_USER = int(os.getenv('MAX_RECORDS_PER_USER', 300))
 messages = {
@@ -305,21 +305,6 @@ def process_custom_conditions(message):
             params_dict[chat_id] = {}
     else:
         save_info(message)
-
-
-def markup_buttons(chat_id, media_id, media_data):
-    markup = types.InlineKeyboardMarkup()
-    if chat_id != media_data['user_id']:
-        markup = quick_markup({
-            'Назад': {'callback_data': f'back_to_list_{media_type[chat_id]}'}
-        })
-    else:
-        markup = quick_markup({
-            'Назад': {'callback_data': f'back_to_list_{media_type[chat_id]}'},
-            'Редагувати': {'callback_data': f'edit_{media_type[chat_id]}_{media_id}'},
-            'Видалити': {'callback_data': f'delete_{media_type[chat_id]}_{media_id}'}
-        })
-    return markup
     
 def save_info(message):
     chat_id = message.chat.id
