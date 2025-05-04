@@ -6,6 +6,7 @@ from config import bot, params_dict
 from functions.admin_check import is_user_admin
 import os
 from variables.globals import media_type, movie_type
+from telebot.util import quick_markup
 
 MAX_RECORDS_PER_USER = int(os.getenv('MAX_RECORDS_PER_USER', 300))
 messages = {
@@ -29,18 +30,14 @@ messages = {
     }
 }
 
-def add_back_button(markup, media_id,chat_id):
-    button = types.InlineKeyboardButton(text="Назад", callback_data=f"{media_type[chat_id]}_{media_id}")
-    markup.add(button)
-
 def process_title(message):
     chat_id = message.chat.id
     if 'state' in params_dict[chat_id] and params_dict[chat_id]['state'] == 'editing_title':
         title = message.text
         media_id = params_dict[chat_id]['media_id']
         db[media_type[chat_id] + 's'].update_one({'_id': ObjectId(media_id)}, {'$set': {'title': title}})
-        markup = types.InlineKeyboardMarkup()
-        add_back_button(markup, media_id,chat_id)
+        media_data = db[media_type[chat_id] + 's'].find_one({'_id': ObjectId(media_id)})
+        markup = markup_buttons(chat_id, media_id, media_data)
         
         bot.send_message(chat_id, f"Назву змінено на '{title}'",reply_markup=markup)
         params_dict[chat_id] = {}
@@ -67,8 +64,8 @@ def process_author(message):
     if 'state' in params_dict[chat_id] and params_dict[chat_id]['state'] == 'editing_author':
         media_id = params_dict[chat_id]['media_id']
         db[media_type[chat_id] + 's'].update_one({'_id': ObjectId(media_id)}, {'$set': {'author': authors}})
-        markup = types.InlineKeyboardMarkup()
-        add_back_button(markup, media_id,chat_id)
+        media_data = db[media_type[chat_id] + 's'].find_one({'_id': ObjectId(media_id)})
+        markup = markup_buttons(chat_id, media_id, media_data)
         bot.send_message(chat_id, f"Автор(и) змінено на '{', '.join(authors) if authors else 'Немає'}'", reply_markup=markup)
         params_dict[chat_id] = {}
     else:
@@ -96,8 +93,8 @@ def process_rating(message):
     if 'state' in params_dict[chat_id] and params_dict[chat_id]['state'] == 'editing_rating':
         media_id = params_dict[chat_id]['media_id']
         db[media_type[chat_id] + 's'].update_one({'_id': ObjectId(media_id)}, {'$set': {'rating': rating}})
-        markup = types.InlineKeyboardMarkup()
-        add_back_button(markup, media_id,chat_id)
+        media_data = db[media_type[chat_id] + 's'].find_one({'_id': ObjectId(media_id)})
+        markup = markup_buttons(chat_id, media_id, media_data)
         bot.send_message(chat_id, f"Оцінку змінено на '{rating}'", reply_markup=markup)
         params_dict[chat_id] = {}
     else:
@@ -114,8 +111,8 @@ def process_review(message):
     if 'state' in params_dict[chat_id] and params_dict[chat_id]['state'] == 'editing_review':
         media_id = params_dict[chat_id]['media_id']
         db[media_type[chat_id] + 's'].update_one({'_id': ObjectId(media_id)}, {'$set': {'review': review}})
-        markup = types.InlineKeyboardMarkup()
-        add_back_button(markup, media_id,chat_id)
+        media_data = db[media_type[chat_id] + 's'].find_one({'_id': ObjectId(media_id)})
+        markup = markup_buttons(chat_id, media_id, media_data)
         bot.send_message(chat_id, f"Відгук змінено на '{review}'", reply_markup=markup)
         params_dict[chat_id] = {}
     else:
@@ -153,8 +150,8 @@ def process_type(message):
     if 'state' in params_dict[chat_id] and params_dict[chat_id]['state'] == 'editing_type': 
         media_id = params_dict[chat_id]['media_id']
         db[media_type[chat_id] + 's'].update_one({'_id': ObjectId(media_id)}, {'$set': {'type': m_type}})
-        markup = types.InlineKeyboardMarkup()
-        add_back_button(markup, media_id,chat_id)
+        media_data = db[media_type[chat_id] + 's'].find_one({'_id': ObjectId(media_id)})
+        markup = markup_buttons(chat_id, media_id, media_data)
         bot.send_message(chat_id, f"Тип змінено на '{m_type}'", reply_markup=markup)
         params_dict[chat_id] = {}
     # else:
@@ -190,8 +187,8 @@ def process_date(message):
     if 'state' in params_dict[chat_id] and params_dict[chat_id]['state'] == 'editing_date':
         media_id = params_dict[chat_id]['media_id']
         db[media_type[chat_id] + 's'].update_one({'_id': ObjectId(media_id)}, {'$set': {'date': full_date}})
-        markup = types.InlineKeyboardMarkup()
-        add_back_button(markup, media_id,chat_id)
+        media_data = db[media_type[chat_id] + 's'].find_one({'_id': ObjectId(media_id)})
+        markup = markup_buttons(chat_id, media_id, media_data)
         bot.send_message(chat_id, f"Дата змінена на '{full_date}'", reply_markup=markup)
         params_dict[chat_id] = {}
     else:
@@ -226,8 +223,8 @@ def process_custom_date(message):
         print("media_id: ", media_id)
         db[media_type[chat_id] + 's'].update_one({'_id': ObjectId(media_id)}, {'$set': {'date': full_date}})
         db[media_type[chat_id] + 's'].update_one({'_id': ObjectId(media_id)}, {'$set': {'year': year}})
-        markup = types.InlineKeyboardMarkup()
-        add_back_button(markup, media_id,chat_id)
+        media_data = db[media_type[chat_id] + 's'].find_one({'_id': ObjectId(media_id)})
+        markup = markup_buttons(chat_id, media_id, media_data)
         bot.send_message(chat_id, f"Дата змінена на '{full_date}'", reply_markup=markup)
         params_dict[chat_id] = {}
     else:
@@ -276,8 +273,8 @@ def process_conditions(message):
         else:
             media_id = params_dict[chat_id]['media_id']
             db[media_type[chat_id] + 's'].update_one({'_id': ObjectId(media_id)}, {'$set': {'conditions': conditions}})
-            markup = types.InlineKeyboardMarkup()
-            add_back_button(markup, media_id,chat_id)
+            media_data = db[media_type[chat_id] + 's'].find_one({'_id': ObjectId(media_id)})
+            markup = markup_buttons(chat_id, media_id, media_data)
             bot.send_message(chat_id, f"Умови перегляду змінено на '{conditions}'", reply_markup=markup)
             params_dict[chat_id] = {}
     else:
@@ -302,8 +299,8 @@ def process_custom_conditions(message):
         else:
             media_id = params_dict[chat_id]['media_id']
             db[media_type[chat_id] + 's'].update_one({'_id': ObjectId(media_id)}, {'$set': {'conditions': custom_conditions}})
-            markup = types.InlineKeyboardMarkup()
-            add_back_button(markup, media_id,chat_id)
+            media_data = db[media_type[chat_id] + 's'].find_one({'_id': ObjectId(media_id)})
+            markup = markup_buttons(chat_id, media_id, media_data)
             bot.send_message(chat_id, f"Умови перегляду змінено на '{custom_conditions}'", reply_markup=markup)
             params_dict[chat_id] = {}
     else:
@@ -353,9 +350,13 @@ def save_info(message):
         media_data['conditions'] = params_dict[chat_id]['conditions']
     elif media_type[chat_id] == 'book':
         media_data['author'] = params_dict[chat_id]['author']
-    db[media_type[chat_id] + 's'].insert_one(media_data)
+    result = db[media_type[chat_id] + 's'].insert_one(media_data)
+    media_id = str(result.inserted_id)
+
     msg = messages[media_type[chat_id]]['adding']+ ' успішно додано!'
-    bot.send_message(chat_id, msg, reply_markup=types.ReplyKeyboardRemove())
+    markup = markup_buttons(chat_id, media_id, media_data)
+    
+    bot.send_message(chat_id, msg, reply_markup=markup)
 
 def update_info(message):
     chat_id = message.chat.id
