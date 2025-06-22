@@ -38,5 +38,5 @@ bot.message_handler(commands=['admin'])(admin_panel)
 bot.message_handler(commands=['change_language'])(change_language)
 
 
-bot.delete_webhook()
-bot.infinity_polling()
+# bot.delete_webhook()
+# bot.infinity_polling()
