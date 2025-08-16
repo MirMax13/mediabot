@@ -5,7 +5,7 @@ from db import db
 from config import bot, params_dict
 from functions.admin_check import is_user_admin
 import os
-from variables.globals import media_type, movie_type
+from variables.globals import media_type, movie_type,is_waiting
 from functions.markup_buttons import markup_buttons
 
 MAX_RECORDS_PER_USER = int(os.getenv('MAX_RECORDS_PER_USER', 300))
@@ -46,6 +46,8 @@ def process_title(message):
         params_dict[chat_id]['title'] = message.text
         if media_type[chat_id] == 'book':
             ask_for_author(message)
+        elif is_waiting[chat_id]:
+            ask_for_review(message)
         else:
             ask_for_rating(message)
 
@@ -115,6 +117,9 @@ def process_review(message):
         markup = markup_buttons(chat_id, media_id, media_data)
         bot.send_message(chat_id, f"Відгук змінено на '{review}'", reply_markup=markup)
         params_dict[chat_id] = {}
+    elif is_waiting[chat_id]:
+        params_dict[chat_id]['review'] = review
+        save_info(message)
     else:
         params_dict[chat_id]['review'] = review
         ask_for_date(message)
@@ -305,7 +310,7 @@ def process_custom_conditions(message):
             params_dict[chat_id] = {}
     else:
         save_info(message)
-    
+
 def save_info(message):
     chat_id = message.chat.id
     if chat_id not in params_dict:
@@ -324,22 +329,25 @@ def save_info(message):
     media_data = {
         'user_id': chat_id,
         'title': params_dict[chat_id]['title'],
-        'rating': params_dict[chat_id]['rating'],
+        'rating': params_dict[chat_id]['rating'] if is_waiting[chat_id]==False else None,
         'review': params_dict[chat_id]['review'],
-        'year':  params_dict[chat_id]['year'],
-        'date': params_dict[chat_id]['full_date']
+        'year':  params_dict[chat_id]['year'] if is_waiting[chat_id]==False else None,
+        'date': params_dict[chat_id]['full_date'] if is_waiting[chat_id]==False else None
     }
     if media_type[chat_id] == 'film' and movie_type.get(chat_id):
         media_data['type'] = movie_type[chat_id]
-    if media_type[chat_id] in ['film', 'game']:
+    if media_type[chat_id] in ['film', 'game'] and is_waiting[chat_id]==False:
         media_data['conditions'] = params_dict[chat_id]['conditions']
     elif media_type[chat_id] == 'book':
         media_data['author'] = params_dict[chat_id]['author']
+    if is_waiting[chat_id]:
+        media_data['status'] = 'waiting'
     result = db[media_type[chat_id] + 's'].insert_one(media_data)
     media_id = str(result.inserted_id)
 
     msg = messages[media_type[chat_id]]['adding']+ ' успішно додано!'
     markup = markup_buttons(chat_id, media_id, media_data)
+    is_waiting[chat_id] = False
     
     bot.send_message(chat_id, msg, reply_markup=markup)
 
