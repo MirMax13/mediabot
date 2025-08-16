@@ -15,6 +15,7 @@ def send_welcome(message):
         /add_anime_series - додати аніме серіал
         /add_animated_movie - додати мультфільм
         /add_animated_series - додати мультсеріал
+        /add_waiting - додати до очікування
         /add_game - додати гру
         /add_book - додати книгу
         /add_many_movies - додати багато фільмів (лише адмін)
