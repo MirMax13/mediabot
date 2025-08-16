@@ -42,3 +42,28 @@ bot.message_handler(commands=['change_language'])(change_language)
 
 # bot.delete_webhook()
 # bot.infinity_polling()
+
+from config import bot, BOT_MODE
+from flask import Flask, request
+import os
+
+if __name__ == "__main__":
+    if BOT_MODE == "polling":
+        print("🚀 Запускаю бота в режимі POLLING (локальна розробка)")
+        bot.delete_webhook()
+        bot.infinity_polling()
+    else:
+        print("🌐 Запускаю бота в режимі WEBHOOK (Cloud Run)")
+        app = Flask(__name__)
+
+        @app.route("/" + os.environ.get("BOT_TOKEN"), methods=["POST"])
+        def get_message():
+            update = request.get_json(force=True)
+            bot.process_new_updates([bot.types.Update.de_json(update)])
+            return "OK", 200
+
+        @app.route("/")
+        def index():
+            return "Bot is running!", 200
+
+        app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
