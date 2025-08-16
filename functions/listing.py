@@ -384,3 +384,11 @@ def back_to_list(call):
     message.text = media_type[chat_id]  
     
     process_list(message.text,chat_id)
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('mark_as_watched_'))
+def mark_as_watched(call):
+    chat_id = call.message.chat.id
+    media_id = call.data.split('_')[4]
+    print(media_id)
+    db[media_type[chat_id] + 's'].update_one({'_id': ObjectId(media_id)}, {'$unset': {'status': ""}})
+    bot.send_message(chat_id, 'Контент позначено як переглянутий.')
