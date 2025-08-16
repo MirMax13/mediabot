@@ -329,8 +329,8 @@ def save_info(message):
         'year':  params_dict[chat_id]['year'],
         'date': params_dict[chat_id]['full_date']
     }
-    if media_type[chat_id] == 'film':
-        media_data['type'] = movie_type[chat_id] #TODO: Upgrade
+    if media_type[chat_id] == 'film' and movie_type.get(chat_id):
+        media_data['type'] = movie_type[chat_id]
     if media_type[chat_id] in ['film', 'game']:
         media_data['conditions'] = params_dict[chat_id]['conditions']
     elif media_type[chat_id] == 'book':
