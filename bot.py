@@ -8,6 +8,7 @@ from commands.books.add_book import add_book
 from commands.list_items import list_user_items, list_admin_items
 from commands.titles.adding.add_many_movies import add_many_movies
 from commands.games.add_many_games import add_many_games
+from commands.titles.adding.add_waiting import add_waiting_media
 from commands.start import send_welcome
 from commands.titles.searching.search_movie import search_user_movie, search_admin_movie
 from commands.games.search_game import search_user_game, search_admin_game
@@ -21,6 +22,7 @@ bot.message_handler(commands=['add_anime_series'])(add_anime_series)
 bot.message_handler(commands=['add_anime_movie'])(add_anime_movie)
 bot.message_handler(commands=['add_animated_movie'])(add_animated_movie)
 bot.message_handler(commands=['add_animated_series'])(add_animated_series)
+bot.message_handler(commands=['add_waiting'])(add_waiting_media)
 bot.message_handler(commands=['add_game'])(add_game)
 bot.message_handler(commands=['add_book'])(add_book)
 bot.message_handler(commands=['list'])(list_user_items)
