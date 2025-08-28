@@ -46,10 +46,37 @@ def process_title(message):
         params_dict[chat_id]['title'] = message.text
         if media_type[chat_id] == 'book':
             ask_for_author(message)
+        elif movie_type[chat_id] == 'series':
+            ask_for_seasons(message)
         elif is_waiting[chat_id]:
             ask_for_review(message)
         else:
             ask_for_rating(message)
+
+def ask_for_seasons(message):
+    msg = bot.send_message(message.chat.id, 'Скільки сезонів у серіалі? (або введи -, щоб пропустити"):')
+    bot.register_next_step_handler(msg, process_seasons)
+
+def process_seasons(message):
+    chat_id = message.chat.id
+    if message.text.lower() == '-':
+        seasons = None
+    else:
+        try:
+            seasons = int(message.text)
+        except ValueError:
+            seasons = None
+
+    if 'state' in params_dict[chat_id] and params_dict[chat_id]['state'] == 'editing_seasons':
+        media_id = params_dict[chat_id]['media_id']
+        db[media_type[chat_id] + 's'].update_one({'_id': ObjectId(media_id)}, {'$set': {'seasons': seasons}})
+        media_data = db[media_type[chat_id] + 's'].find_one({'_id': ObjectId(media_id)})
+        markup = markup_buttons(chat_id, media_id, media_data)
+        bot.send_message(chat_id, f"Кількість сезонів змінено на '{seasons}'", reply_markup=markup)
+        params_dict[chat_id] = {}
+    else:
+        params_dict[chat_id]['seasons'] = seasons
+        ask_for_rating(message)
 
 def ask_for_author(message):
     msg = bot.send_message(message.chat.id, 'Автор (або введи -, щоб пропустити"):')
@@ -76,10 +103,22 @@ def process_author(message):
 
 
 def ask_for_rating(message):
-    msg = bot.send_message(message.chat.id, 'Оцінка (або введи -, щоб пропустити"):')
-    bot.register_next_step_handler(msg, process_rating)
+    #Наприклад сезонів 4. Тоді потрібно створити рейтинг для кожного сезону
+    chat_id = message.chat.id
+    if movie_type.get(chat_id) == 'series' and 'seasons' in params_dict.get(chat_id, {}):
+        seasons = params_dict[chat_id]['seasons']
+        # Ініціалізуємо стан послідовного опитування
+        params_dict.setdefault(chat_id, {})
+        params_dict[chat_id]['rating_seq'] = True
+        params_dict[chat_id]['current_season'] = 1
+        params_dict[chat_id]['seasons_total'] = seasons
+        msg = bot.send_message(chat_id, f'Оцінка для сезону 1 (або введи -, щоб пропустити):')
+        bot.register_next_step_handler(msg, process_rating)
+    else:
+        msg = bot.send_message(chat_id, 'Оцінка (або введи -, щоб пропустити"):')
+        bot.register_next_step_handler(msg, process_rating)
 
-def process_rating(message):
+def process_rating(message, season=None):
     try:
         if message.text.lower() != '-':
             rating = float(message.text)
@@ -99,18 +138,60 @@ def process_rating(message):
         markup = markup_buttons(chat_id, media_id, media_data)
         bot.send_message(chat_id, f"Оцінку змінено на '{rating}'", reply_markup=markup)
         params_dict[chat_id] = {}
+    elif params_dict.get(chat_id, {}).get('rating_seq'):
+        cur = params_dict[chat_id].get('current_season', 1)
+        total = params_dict[chat_id].get('seasons_total', cur)
+
+        # Зберігаємо оцінку для поточного сезону
+        params_dict[chat_id][f'rating season {cur}'] = rating
+
+        if cur >= total:
+            # Підрахунок середнього рейтингу по сезонах
+            total_rating = sum(params_dict[chat_id].get(f'rating season {s}', 0) or 0 for s in range(1, total + 1))
+            season_count = sum(1 for s in range(1, total + 1)
+                               if (f'rating season {s}' in params_dict[chat_id] and params_dict[chat_id][f'rating season {s}'] is not None))
+            if season_count > 0:
+                params_dict[chat_id]['rating'] = round(total_rating / season_count, 1)
+            else:
+                params_dict[chat_id]['rating'] = None
+            print(params_dict[chat_id]['rating'])
+            # Прибираємо допоміжні ключі
+            params_dict[chat_id].pop('rating_seq', None)
+            params_dict[chat_id].pop('current_season', None)
+            params_dict[chat_id].pop('seasons_total', None)
+            # Далі — відгук або дата
+            ask_for_review(message)
+        else:
+            # Переходимо до наступного сезону
+            params_dict[chat_id]['current_season'] = cur + 1
+            next_s = cur + 1
+            msg = bot.send_message(chat_id, f'Оцінка для сезону {next_s} (або введи -, щоб пропустити):')
+            bot.register_next_step_handler(msg, process_rating)
     else:
+        params_dict.setdefault(chat_id, {})
         params_dict[chat_id]['rating'] = rating
+        print("Second")
+        print(params_dict[chat_id]['rating'])
         ask_for_review(message)
 
 def ask_for_review(message):
     msg = bot.send_message(message.chat.id, 'Відгук (або введи -, щоб пропустити"):')
     bot.register_next_step_handler(msg, process_review)
 
+def ask_which_season(message):
+    msg = bot.send_message(message.chat.id, 'Який сезон?')
+    bot.register_next_step_handler(msg, process_season)
+
+def process_season(message):
+    chat_id = message.chat.id
+    season = message.text if message.text.lower() != 'skip' else None
+    #TODO: Finish
+
 def process_review(message):
     chat_id = message.chat.id
     review = message.text if message.text.lower() != 'skip' else None
     if 'state' in params_dict[chat_id] and params_dict[chat_id]['state'] == 'editing_review':
+        #TODO: Add reviews for each season
         media_id = params_dict[chat_id]['media_id']
         db[media_type[chat_id] + 's'].update_one({'_id': ObjectId(media_id)}, {'$set': {'review': review}})
         media_data = db[media_type[chat_id] + 's'].find_one({'_id': ObjectId(media_id)})
@@ -325,23 +406,30 @@ def save_info(message):
     if (total_records >= MAX_RECORDS_PER_USER) and not is_user_admin(message):
         bot.send_message(chat_id, 'Ви досягли ліміту записів. Видаліть деякі записи, щоб додати нові.')
         return
-    
+    print(is_waiting.get(chat_id))
     media_data = {
         'user_id': chat_id,
         'title': params_dict[chat_id]['title'],
-        'rating': params_dict[chat_id]['rating'] if is_waiting.get(chat_id)==False else None,
+        'rating': params_dict[chat_id]['rating'] if is_waiting.get(chat_id)!=True else None,
         'review': params_dict[chat_id]['review'],
-        'year':  params_dict[chat_id]['year'] if is_waiting.get(chat_id)==False else None,
-        'date': params_dict[chat_id]['full_date'] if is_waiting.get(chat_id)==False else None
+        'year':  params_dict[chat_id]['year'] if is_waiting.get(chat_id)!=True else None,
+        'date': params_dict[chat_id]['full_date'] if is_waiting.get(chat_id)!=True else None,
     }
+    print(media_data['rating'])
     if media_type[chat_id] == 'film' and movie_type.get(chat_id):
         media_data['type'] = movie_type[chat_id]
-    if media_type[chat_id] in ['film', 'game'] and is_waiting.get(chat_id)==False:
+    if media_type[chat_id] in ['film', 'game'] and is_waiting.get(chat_id)!=True:
         media_data['conditions'] = params_dict[chat_id]['conditions']
     elif media_type[chat_id] == 'book':
         media_data['author'] = params_dict[chat_id]['author']
     if is_waiting.get(chat_id):
         media_data['status'] = 'waiting'
+    if movie_type.get(chat_id) == 'series' and 'seasons' in params_dict[chat_id]:
+        media_data['seasons'] = params_dict[chat_id]['seasons']
+        #Наприклад сезонів 4. Тоді потрібно створити рейтинг для кожного сезону
+        for season in range(1, media_data['seasons'] + 1):
+            media_data['rating season ' + str(season)] = params_dict[chat_id].get('rating season ' + str(season))
+
     result = db[media_type[chat_id] + 's'].insert_one(media_data)
     media_id = str(result.inserted_id)
 
