@@ -5,6 +5,9 @@ from config import bot,params_dict
 from functions.adding_updating import ask_for_rating, ask_for_review, ask_for_date, ask_for_conditions,ask_for_author,ask_for_type
 from functions.markup_buttons import markup_buttons
 from commands.titles.adding.add_movie import add_movie
+from commands.titles.adding.add_series import add_series
+from commands.titles.adding.add_anime import add_anime_series, add_anime_movie
+from commands.titles.adding.add_animated import add_animated_series, add_animated_movie
 from commands.games.add_game import add_game
 from commands.books.add_book import add_book
 from telebot.util import quick_markup
@@ -350,8 +353,19 @@ def edit_smth(call):
     attribute, _, media_id = call.data.split('_')[1:] #TODO: refactor this
     params_dict[chat_id] = {'media_id': media_id, 'media_type': media_type[chat_id],'state': f'editing_{attribute}'} #TODO: refactor this?
     if attribute == 'title' or attribute == 'all':
-        if media_type[chat_id] == 'film': 
-            add_movie(call.message)
+        if media_type[chat_id] == 'film':
+            if movie_type.get(chat_id) == 'series':
+                add_series(call.message)
+            elif movie_type.get(chat_id) == 'anime_series':
+                add_anime_series(call.message)
+            elif movie_type.get(chat_id) == 'animated_series':
+                add_animated_series(call.message)
+            elif movie_type.get(chat_id) == 'anime_movie':
+                add_anime_movie(call.message)
+            elif movie_type.get(chat_id) == 'animated_movie':
+                add_animated_movie(call.message)
+            else:
+                add_movie(call.message)
         elif media_type[chat_id] == 'game':
             add_game(call.message)
         elif media_type[chat_id] == 'book':
