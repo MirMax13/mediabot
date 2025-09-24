@@ -338,6 +338,8 @@ def edit_media(call):
             options['Редагувати тип'] = {'callback_data': f'edit_type_{media_type[chat_id]}_{media_id}'}
     elif media_type[chat_id] == 'book':
         options['Редагувати автора'] = {'callback_data': f'edit_author_{media_type[chat_id]}_{media_id}'}
+    if movie_type.get(chat_id) in ['series', 'anime_series', 'animated_series']:
+        options['Редагувати сезони'] = {'callback_data': f'edit_seasons_{media_type[chat_id]}_{media_id}'}
     # TODO: Change position
     markup = quick_markup(options)
     bot.send_message(chat_id, f'Оберіть, що саме редагувати:', reply_markup=markup)
