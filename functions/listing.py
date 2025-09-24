@@ -2,7 +2,7 @@ from telebot import types
 from db import db
 from bson import ObjectId
 from config import bot,params_dict
-from functions.adding_updating import ask_for_rating, ask_for_review, ask_for_date, ask_for_conditions,ask_for_author,ask_for_type
+from functions.adding_updating import ask_for_rating, ask_for_review, ask_for_date, ask_for_conditions,ask_for_author,ask_for_type, ask_for_seasons
 from functions.markup_buttons import markup_buttons
 from commands.titles.adding.add_movie import add_movie
 from commands.titles.adding.add_series import add_series
@@ -13,6 +13,50 @@ from commands.books.add_book import add_book
 from telebot.util import quick_markup
 from telebot.types import Message
 from variables.globals import query_dict, media_type, sort_preference,movie_type
+
+# === Допоміжні функції для редагування сезонів ===
+def _recalc_series_rating(doc: dict):
+    seasons = doc.get('seasons', 0)
+    vals = []
+    for i in range(1, seasons + 1):
+        v = doc.get(f'rating season {i}')
+        if isinstance(v, (int, float)):
+            vals.append(v)
+    if vals:
+        return round(sum(vals) / len(vals), 1)
+    return None
+
+def _build_seasons_keyboard(chat_id, media_id, doc):
+    from telebot import types
+    kb = types.InlineKeyboardMarkup()
+    seasons = doc.get('seasons', 0)
+    for i in range(1, seasons + 1):
+        r = doc.get(f'rating season {i}')
+        label = f"Сезон {i}: {r if r is not None else '-'}"
+        kb.add(types.InlineKeyboardButton(
+            text=label,
+            callback_data=f'edit_season_rating_{media_type[chat_id]}_{media_id}_{i}'
+        ))
+    # Кнопки керування
+    kb.add(
+        types.InlineKeyboardButton(text='➕ Додати сезон', callback_data=f'add_season_{media_type[chat_id]}_{media_id}'),
+        types.InlineKeyboardButton(text='➖ Видалити сезон', callback_data=f'del_season_{media_type[chat_id]}_{media_id}')
+    )
+    # Назад до меню редагування
+    kb.add(types.InlineKeyboardButton(text='⬅️ Назад', callback_data=f'edit_{media_type[chat_id]}_{media_id}'))
+    return kb
+
+def _open_seasons_editor(chat_id, media_id):
+    col = db[media_type[chat_id] + 's']
+    doc = col.find_one({'_id': ObjectId(media_id)})
+    if not doc:
+        bot.send_message(chat_id, 'Не знайдено запис.')
+        return
+    if movie_type.get(chat_id) not in ['series', 'anime_series', 'animated_series']:
+        bot.send_message(chat_id, 'Цей контент не має сезонів.')
+        return
+    kb = _build_seasons_keyboard(chat_id, media_id, doc)
+    bot.send_message(chat_id, f"Редагування сезонів (зараз: {doc.get('seasons', 0)})", reply_markup=kb)
 
 def list_items(message):
     chat_id = message.chat.id
@@ -330,11 +374,12 @@ def edit_media(call):
     params_dict[chat_id] = {'media_id': media_id}
     options = {
         'Редагувати назву': {'callback_data': f'edit_title_{media_type[chat_id]}_{media_id}'},
-        'Редагувати оцінку': {'callback_data': f'edit_rating_{media_type[chat_id]}_{media_id}'},
         'Редагувати відгук': {'callback_data': f'edit_review_{media_type[chat_id]}_{media_id}'},
         'Редагувати дату': {'callback_data': f'edit_date_{media_type[chat_id]}_{media_id}'},
         'Редагувати все': {'callback_data': f'edit_all_{media_type[chat_id]}_{media_id}'}
     }
+    if movie_type.get(chat_id) not in ['series', 'anime_series', 'animated_series']:
+        options['Редагувати оцінку'] = {'callback_data': f'edit_rating_{media_type[chat_id]}_{media_id}'}
     if media_type[chat_id] in ['film', 'game']:
         options['Редагувати умови'] = {'callback_data': f'edit_conditions_{media_type[chat_id]}_{media_id}'}
         if media_type[chat_id] == 'film':
@@ -347,28 +392,48 @@ def edit_media(call):
     markup = quick_markup(options)
     bot.send_message(chat_id, f'Оберіть, що саме редагувати:', reply_markup=markup)
 
-@bot.callback_query_handler(func=lambda call: call.data.startswith('edit_'))
+@bot.callback_query_handler(
+    func=lambda call: (
+        call.data.startswith('edit_')
+        and not call.data.startswith((
+            'edit_film_', 'edit_game_', 'edit_book_',
+            'edit_seasons_', 'edit_season_rating_'
+        ))
+    )
+)
 def edit_smth(call):
     chat_id = call.message.chat.id
-    attribute, _, media_id = call.data.split('_')[1:] #TODO: refactor this
-    params_dict[chat_id] = {'media_id': media_id, 'media_type': media_type[chat_id],'state': f'editing_{attribute}'} #TODO: refactor this?
-    if attribute == 'title' or attribute == 'all':
-        if media_type[chat_id] == 'film':
-            if movie_type.get(chat_id) == 'series':
+    parts = call.data.split('_')
+    # Очікуваний формат: edit_<attribute>_<mediaType>_<mediaId>
+    if len(parts) < 4:
+        bot.send_message(chat_id, 'Невірний формат команди.')
+        return
+    attribute = parts[1]
+    media_id = parts[3]
+    params_dict[chat_id] = {
+        'media_id': media_id,
+        'media_type': media_type.get(chat_id),
+        'state': f'editing_{attribute}'
+    }
+
+    if attribute in ('title', 'all'):
+        if media_type.get(chat_id) == 'film':
+            mt = movie_type.get(chat_id)
+            if mt == 'series':
                 add_series(call.message)
-            elif movie_type.get(chat_id) == 'anime_series':
+            elif mt == 'anime_series':
                 add_anime_series(call.message)
-            elif movie_type.get(chat_id) == 'animated_series':
+            elif mt == 'animated_series':
                 add_animated_series(call.message)
-            elif movie_type.get(chat_id) == 'anime_movie':
+            elif mt == 'anime_movie':
                 add_anime_movie(call.message)
-            elif movie_type.get(chat_id) == 'animated_movie':
+            elif mt == 'animated_movie':
                 add_animated_movie(call.message)
             else:
                 add_movie(call.message)
-        elif media_type[chat_id] == 'game':
+        elif media_type.get(chat_id) == 'game':
             add_game(call.message)
-        elif media_type[chat_id] == 'book':
+        elif media_type.get(chat_id) == 'book':
             add_book(call.message)
     elif attribute == 'rating':
         ask_for_rating(call.message)
@@ -382,7 +447,180 @@ def edit_smth(call):
         ask_for_author(call.message)
     elif attribute == 'type':
         ask_for_type(call.message)
-        
+    elif attribute == 'seasons':
+        _open_seasons_editor(chat_id, media_id)
+
+
+# --- ВИПРАВЛЕНИЙ handler для edit_seasons_* (було: media_id = parts[2]) ---
+@bot.callback_query_handler(func=lambda call: call.data.startswith('edit_seasons_'))
+def handle_edit_seasons(call):
+    chat_id = call.message.chat.id
+    parts = call.data.split('_')
+    # Формат: edit_seasons_<mediaType>_<mediaId>
+    if len(parts) < 4:
+        bot.send_message(chat_id, 'Невірний формат (seasons).')
+        return
+    media_id = parts[-1]
+    # Відновити movie_type з документа якщо втрачено (після рестарту)
+    if movie_type.get(chat_id) is None and media_type.get(chat_id) == 'film':
+        doc = db.films.find_one({'_id': ObjectId(media_id)}, {'type': 1})
+        if doc and doc.get('type'):
+            movie_type[chat_id] = doc['type']
+    _open_seasons_editor(chat_id, media_id)
+
+
+# --- ВИПРАВЛЕНИЙ handler для edit_season_rating_* (зміщені індекси) ---
+@bot.callback_query_handler(func=lambda call: call.data.startswith('edit_season_rating_'))
+def handle_edit_season_rating(call):
+    chat_id = call.message.chat.id
+    parts = call.data.split('_')
+    # Формат: edit_season_rating_<mediaType>_<mediaId>_<season>
+    if len(parts) < 6:
+        bot.send_message(chat_id, 'Невірний формат (season rating).')
+        return
+    media_id = parts[-2]
+    season_num = int(parts[-1])
+    params_dict[chat_id] = {
+        'media_id': media_id,
+        'season_to_edit': season_num,
+        'state': 'editing_season_rating'
+    }
+    # Відновлення type якщо втрачено
+    if movie_type.get(chat_id) is None and media_type.get(chat_id) == 'film':
+        doc = db.films.find_one({'_id': ObjectId(media_id)}, {'type': 1})
+        if doc and doc.get('type'):
+            movie_type[chat_id] = doc['type']
+    msg = bot.send_message(chat_id, f'Нова оцінка для сезону {season_num} (0-10 або - щоб очистити):')
+    bot.register_next_step_handler(msg, _process_edit_season_rating)
+
+
+# --- Callback: відкриття редактора сезонів без проходження через edit_smth (прямо) ---
+@bot.callback_query_handler(func=lambda call: call.data.startswith('edit_seasons_'))
+def handle_edit_seasons(call):
+    chat_id = call.message.chat.id
+    media_id = call.data.split('_')[2]
+    _open_seasons_editor(chat_id, media_id)
+
+# --- Callback: редагування рейтингу конкретного сезону ---
+@bot.callback_query_handler(func=lambda call: call.data.startswith('edit_season_rating_'))
+def handle_edit_season_rating(call):
+    chat_id = call.message.chat.id
+    parts = call.data.split('_')
+    # pattern: edit_season_rating_<mediaType>_<mediaId>_<season>
+    media_id = parts[3]
+    season_num = int(parts[4])
+    params_dict[chat_id] = {
+        'media_id': media_id,
+        'season_to_edit': season_num,
+        'state': 'editing_season_rating'
+    }
+    msg = bot.send_message(chat_id, f'Нова оцінка для сезону {season_num} (0-10 або - щоб очистити):')
+    bot.register_next_step_handler(msg, _process_edit_season_rating)
+
+def _process_edit_season_rating(message):
+    chat_id = message.chat.id
+    state = params_dict.get(chat_id, {})
+    media_id = state.get('media_id')
+    season_num = state.get('season_to_edit')
+    if not media_id or not season_num:
+        bot.send_message(chat_id, 'Сесія редагування втрачена.')
+        return
+    txt = (message.text or '').strip()
+    if txt == '-':
+        new_val = None
+    else:
+        try:
+            val = float(txt.replace(',', '.'))
+            if 0 <= val <= 10:
+                new_val = round(val, 1)
+            else:
+                bot.send_message(chat_id, 'Невірний діапазон. Введіть число 0-10 або -.')
+                return bot.register_next_step_handler(message, _process_edit_season_rating)
+        except ValueError:
+            bot.send_message(chat_id, 'Невірний формат. Спробуйте ще раз (0-10 або -).')
+            return bot.register_next_step_handler(message, _process_edit_season_rating)
+
+    col = db[media_type[chat_id] + 's']
+    update_fields = {f'rating season {season_num}': new_val}
+    # Отримати документ
+    doc = col.find_one({'_id': ObjectId(media_id)})
+    if not doc:
+        bot.send_message(chat_id, 'Не знайдено запис.')
+        return
+    # Оновити сезонну оцінку
+    col.update_one({'_id': ObjectId(media_id)}, {'$set': update_fields})
+    # Перерахувати загальний рейтинг
+    doc = col.find_one({'_id': ObjectId(media_id)})  # оновлений
+    overall = _recalc_series_rating(doc)
+    col.update_one({'_id': ObjectId(media_id)}, {'$set': {'rating': overall}})
+    bot.send_message(chat_id, f'Сезон {season_num} оновлено. Поточний загальний рейтинг: {overall if overall is not None else "-"}')
+    _open_seasons_editor(chat_id, media_id)
+
+# --- Callback: додати сезон ---
+@bot.callback_query_handler(func=lambda call: call.data.startswith('add_season_'))
+def handle_add_season(call):
+    chat_id = call.message.chat.id
+    parts = call.data.split('_')
+    # callback формується як: add_season_<mediaType>_<mediaId>
+    if len(parts) < 4:
+        bot.send_message(chat_id, 'Невірний формат (add season).')
+        return
+    media_id = parts[-1]  # було parts[2] -> помилка (давав "film")
+    col = db[media_type[chat_id] + 's']
+    try:
+        doc = col.find_one({'_id': ObjectId(media_id)})
+    except Exception:
+        bot.send_message(chat_id, 'Некоректний ID (add).')
+        return
+    if not doc:
+        bot.send_message(chat_id, 'Не знайдено запис.')
+        return
+    if movie_type.get(chat_id) not in ['series', 'anime_series', 'animated_series']:
+        bot.send_message(chat_id, 'Цей контент не підтримує сезони.')
+        return
+    new_total = int(doc.get('seasons', 0)) + 1
+    col.update_one(
+        {'_id': ObjectId(media_id)},
+        {'$set': {'seasons': new_total, f'rating season {new_total}': None}}
+    )
+    bot.send_message(chat_id, f'Додано сезон {new_total}.')
+    _open_seasons_editor(chat_id, media_id)
+
+# --- FIX: видалити сезон (правильний парсинг media_id) ---
+@bot.callback_query_handler(func=lambda call: call.data.startswith('del_season_'))
+def handle_del_season(call):
+    chat_id = call.message.chat.id
+    parts = call.data.split('_')
+    # callback: del_season_<mediaType>_<mediaId>
+    if len(parts) < 4:
+        bot.send_message(chat_id, 'Невірний формат (del season).')
+        return
+    media_id = parts[-1]
+    col = db[media_type[chat_id] + 's']
+    try:
+        doc = col.find_one({'_id': ObjectId(media_id)})
+    except Exception:
+        bot.send_message(chat_id, 'Некоректний ID (del).')
+        return
+    if not doc:
+        bot.send_message(chat_id, 'Не знайдено запис.')
+        return
+    seasons = int(doc.get('seasons', 0))
+    if seasons <= 1:
+        bot.send_message(chat_id, 'Не можна видалити останній сезон.')
+        return
+    unset_field = f'rating season {seasons}'
+    col.update_one(
+        {'_id': ObjectId(media_id)},
+        {'$unset': {unset_field: ""}, '$set': {'seasons': seasons - 1}}
+    )
+    new_doc = col.find_one({'_id': ObjectId(media_id)})
+    overall = _recalc_series_rating(new_doc)
+    col.update_one({'_id': ObjectId(media_id)}, {'$set': {'rating': overall}})
+    bot.send_message(chat_id, f'Сезон {seasons} видалено. Новий загальний рейтинг: {overall if overall is not None else "-"}')
+    _open_seasons_editor(chat_id, media_id)
+
+
 @bot.callback_query_handler(func=lambda call: call.data.startswith('back_to_list_'))
 def back_to_list(call):
     message = Message(
