@@ -48,7 +48,7 @@ def process_title(message):
             ask_for_author(message)
         elif movie_type[chat_id] == 'series':
             ask_for_seasons(message)
-        elif is_waiting[chat_id]:
+        elif is_waiting.get(chat_id, False):
             ask_for_review(message)
         else:
             ask_for_rating(message)
