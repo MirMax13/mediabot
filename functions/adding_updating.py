@@ -162,8 +162,6 @@ def process_rating(message, season=None):
     else:
         params_dict.setdefault(chat_id, {})
         params_dict[chat_id]['rating'] = rating
-        print("Second")
-        print(params_dict[chat_id]['rating'])
         ask_for_review(message)
 
 def ask_for_review(message):
