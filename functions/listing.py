@@ -372,13 +372,23 @@ def edit_media(call):
     chat_id = call.message.chat.id
     media_id = call.data.split('_')[2]
     params_dict[chat_id] = {'media_id': media_id}
+    # Get media document to check type
+    collection = db[media_type[chat_id] + 's']
+    media_doc = collection.find_one({'_id': ObjectId(media_id)})
+    if media_type[chat_id] == 'film' and media_doc and 'type' in media_doc:
+        movie_type[chat_id] = media_doc['type']
     options = {
         'Редагувати назву': {'callback_data': f'edit_title_{media_type[chat_id]}_{media_id}'},
         'Редагувати відгук': {'callback_data': f'edit_review_{media_type[chat_id]}_{media_id}'},
         'Редагувати дату': {'callback_data': f'edit_date_{media_type[chat_id]}_{media_id}'},
         'Редагувати все': {'callback_data': f'edit_all_{media_type[chat_id]}_{media_id}'}
     }
-    if movie_type.get(chat_id) not in ['series', 'anime_series', 'animated_series']:
+    if media_doc and media_doc.get('type') in ['series', 'anime_series', 'animated_series']:
+        is_series = True
+        movie_type[chat_id] = media_doc.get('type')  # Оновлюємо змінну
+    else:
+        is_series = movie_type.get(chat_id) in ['series', 'anime_series', 'animated_series']
+    if not is_series:
         options['Редагувати оцінку'] = {'callback_data': f'edit_rating_{media_type[chat_id]}_{media_id}'}
     if media_type[chat_id] in ['film', 'game']:
         options['Редагувати умови'] = {'callback_data': f'edit_conditions_{media_type[chat_id]}_{media_id}'}
@@ -386,10 +396,10 @@ def edit_media(call):
             options['Редагувати тип'] = {'callback_data': f'edit_type_{media_type[chat_id]}_{media_id}'}
     elif media_type[chat_id] == 'book':
         options['Редагувати автора'] = {'callback_data': f'edit_author_{media_type[chat_id]}_{media_id}'}
-    if movie_type.get(chat_id) in ['series', 'anime_series', 'animated_series']:
+    if is_series:
         options['Редагувати сезони'] = {'callback_data': f'edit_seasons_{media_type[chat_id]}_{media_id}'}
-    # TODO: Change position
-    markup = quick_markup(options)
+        print(f"Серіал {media_doc.get('title')} (тип: {movie_type.get(chat_id)}). Додано кнопку 'Редагувати сезони'")
+    markup = safe_quick_markup(options)
     bot.send_message(chat_id, f'Оберіть, що саме редагувати:', reply_markup=markup)
 
 @bot.callback_query_handler(
