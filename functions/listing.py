@@ -10,7 +10,7 @@ from commands.titles.adding.add_anime import add_anime_series, add_anime_movie
 from commands.titles.adding.add_animated import add_animated_series, add_animated_movie
 from commands.games.add_game import add_game
 from commands.books.add_book import add_book
-from telebot.util import quick_markup
+from functions.markup_buttons import safe_quick_markup
 from telebot.types import Message
 from variables.globals import query_dict, media_type, sort_preference,movie_type
 
@@ -248,6 +248,13 @@ def send_paginated_list(chat_id, page,year=None, years=None, option=None, search
             else:
                 match_query = query
             all_items = list(db.films.find(match_query).sort([('rating', -1), ('title', 1)]))
+    # Debug output
+    if option == 'title' and search_query:
+        print(f"Пошук за назвою '{search_query}'. Знайдено {len(all_items)} результатів.")
+        if all_items:
+            for i, item in enumerate(all_items[:3]):  # Виводимо перші 3 результати для відлагодження
+                print(f"{i+1}. {item.get('title')} (тип: {item.get('type', 'невідомо')})")
+    
     total_pages = (len(all_items) + items_per_page - 1) // items_per_page
     start = page * items_per_page
     end = start + items_per_page
