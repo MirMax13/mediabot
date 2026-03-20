@@ -13,6 +13,16 @@ from commands.books.add_book import add_book
 from functions.markup_buttons import safe_quick_markup
 from telebot.types import Message
 from variables.globals import query_dict, media_type, sort_preference,movie_type
+from variables.media_types import (
+    DIRECT_FILM_TYPES,
+    GROUPED_FILM_TYPES,
+    LIST_MESSAGE_TO_MEDIA_TYPE,
+    MAIN_MEDIA_OPTIONS,
+    MEDIA_SELECTION_TO_MOVIE_TYPE,
+    SERIES_TYPES,
+    SUBMEDIA_OPTIONS_BY_MEDIA,
+    SUBMEDIA_SELECTION_TO_MOVIE_TYPE,
+)
 
 # === Допоміжні функції для редагування сезонів ===
 def _recalc_series_rating(doc: dict):
@@ -52,7 +62,7 @@ def _open_seasons_editor(chat_id, media_id):
     if not doc:
         bot.send_message(chat_id, 'Не знайдено запис.')
         return
-    if movie_type.get(chat_id) not in ['series', 'anime_series', 'animated_series']:
+    if movie_type.get(chat_id) not in SERIES_TYPES:
         bot.send_message(chat_id, 'Цей контент не має сезонів.')
         return
     kb = _build_seasons_keyboard(chat_id, media_id, doc)
@@ -84,7 +94,7 @@ def handle_main_selection(call):
     
     if selected_main == 'медіа':
         markup = types.InlineKeyboardMarkup(row_width=1)
-        options = ['Фільми', 'Серіали', 'Аніме', 'Мультфільми','Усе']
+        options = MAIN_MEDIA_OPTIONS
         for option in options:
             button = types.InlineKeyboardButton(option, callback_data=f"media_{option.lower()}")
             markup.add(button)
@@ -100,22 +110,14 @@ def handle_media_selection(call):
     
     if selected_media in ['аніме', 'мультфільми']:
         markup = types.InlineKeyboardMarkup(row_width=1)
-        if selected_media == 'аніме':
-            options = ['Аніме фільми', 'Аніме серіали', 'Усе аніме']
-        else:
-            options = ['Мультфільми', 'Мультсеріали', 'Усе мультики']
+        options = SUBMEDIA_OPTIONS_BY_MEDIA[selected_media]
         for option in options:
             button = types.InlineKeyboardButton(option, callback_data=f"submedia_{option.lower().replace(' ', '_')}")
             markup.add(button)
         bot.send_message(chat_id, 'Що саме?', reply_markup=markup)
     else:
         media_type[chat_id] = 'film'
-        if selected_media == 'фільми':
-            movie_type[chat_id] = 'film'
-        elif selected_media == 'серіали':
-            movie_type[chat_id] = 'series'
-        else:
-            movie_type[chat_id] = 'media'
+        movie_type[chat_id] = MEDIA_SELECTION_TO_MOVIE_TYPE.get(selected_media, 'media')
         process_list(selected_media, chat_id)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("submedia_"))
@@ -123,20 +125,7 @@ def handle_submedia_selection(call):
     chat_id = call.message.chat.id
     selected_submedia = call.data.split("_", 1)[1]
     media_type[chat_id] = 'film'
-    if selected_submedia == 'аніме_фільми':
-        movie_type[chat_id] = 'anime_movie'
-    elif selected_submedia == 'аніме_серіали':
-        movie_type[chat_id] = 'anime_series'
-    elif selected_submedia == 'усе_аніме':
-        movie_type[chat_id] = 'anime'
-    elif selected_submedia == 'мультфільми':
-        movie_type[chat_id] = 'animated_movie'
-    elif selected_submedia == 'мультсеріали':
-        movie_type[chat_id] = 'animated_series'
-    elif selected_submedia == 'усе_мультики':
-        movie_type[chat_id] = 'animated'
-    elif selected_submedia == 'усе':
-        movie_type[chat_id] = 'media'
+    movie_type[chat_id] = SUBMEDIA_SELECTION_TO_MOVIE_TYPE.get(selected_submedia, 'media')
     
     process_list(selected_submedia, chat_id)
 
@@ -159,10 +148,9 @@ def handle_sort_selection(call):
     list_items(call.message)
 
 def process_list(message,chat_id):
-    if message.lower() == 'ігри':
-        media_type[chat_id] = 'game'
-    elif message.lower() == 'книги':
-        media_type[chat_id] = 'book'
+    normalized_message = message.lower()
+    if normalized_message in LIST_MESSAGE_TO_MEDIA_TYPE:
+        media_type[chat_id] = LIST_MESSAGE_TO_MEDIA_TYPE[normalized_message]
     # print(media_type)
     bot.send_message(chat_id, 'Обробка вибору списку')
     markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
@@ -211,13 +199,11 @@ def send_paginated_list(chat_id, page,year=None, years=None, option=None, search
             all_items = list(db.games.find(query).sort([('date', -1), ('title', 1)]))
         elif 'film' in media_type[chat_id]:
             print(f"Фільтруємо за типом: {movie_type_value}")  # Debug output
-            if movie_type_value in ['film', 'anime_series', 'anime_movie', 'series', 'animated_series', 'animated_movie'] :
+            if movie_type_value in DIRECT_FILM_TYPES:
                 match_query = {'type': movie_type_value, **query}
                 print(f"Фільтруємо за типом2: {movie_type_value}")
-            elif movie_type.get(chat_id) == 'anime':
-                match_query = {'type': {'$in': ['anime_series', 'anime_movie']}, **query}
-            elif movie_type.get(chat_id) == 'animated':
-                match_query = {'type': {'$in': ['animated_series', 'animated_movie']}, **query}
+            elif movie_type_value in GROUPED_FILM_TYPES:
+                match_query = {'type': {'$in': GROUPED_FILM_TYPES[movie_type_value]}, **query}
             else:
                 match_query = query
             all_items = list(db.films.aggregate([
@@ -241,12 +227,10 @@ def send_paginated_list(chat_id, page,year=None, years=None, option=None, search
             all_items = list(db.games.find(query).sort([('rating', -1), ('title', 1)]))
         elif 'film' in media_type[chat_id]:
             print(f"Фільтруємо за типом: {movie_type_value}")  # Debug output
-            if movie_type_value in ['film', 'anime_series', 'anime_movie', 'series', 'animated_series', 'animated_movie']:
+            if movie_type_value in DIRECT_FILM_TYPES:
                 match_query = {'type': movie_type_value, **query}
-            elif movie_type.get(chat_id) == 'anime':
-                match_query = {'type': {'$in': ['anime_series', 'anime_movie']}, **query}
-            elif movie_type.get(chat_id) == 'animated':
-                match_query = {'type': {'$in': ['animated_series', 'animated_movie']}, **query}
+            elif movie_type_value in GROUPED_FILM_TYPES:
+                match_query = {'type': {'$in': GROUPED_FILM_TYPES[movie_type_value]}, **query}
             else:
                 match_query = query
             all_items = list(db.films.find(match_query).sort([('rating', -1), ('title', 1)]))
@@ -392,11 +376,11 @@ def edit_media(call):
         'Редагувати дату': {'callback_data': f'edit_date_{media_type[chat_id]}_{media_id}'},
         'Редагувати все': {'callback_data': f'edit_all_{media_type[chat_id]}_{media_id}'}
     }
-    if media_doc and media_doc.get('type') in ['series', 'anime_series', 'animated_series']:
+    if media_doc and media_doc.get('type') in SERIES_TYPES:
         is_series = True
         movie_type[chat_id] = media_doc.get('type')  # Оновлюємо змінну
     else:
-        is_series = movie_type.get(chat_id) in ['series', 'anime_series', 'animated_series']
+        is_series = movie_type.get(chat_id) in SERIES_TYPES
     if not is_series:
         options['Редагувати оцінку'] = {'callback_data': f'edit_rating_{media_type[chat_id]}_{media_id}'}
     if media_type[chat_id] in ['film', 'game']:
@@ -594,7 +578,7 @@ def handle_add_season(call):
     if not doc:
         bot.send_message(chat_id, 'Не знайдено запис.')
         return
-    if movie_type.get(chat_id) not in ['series', 'anime_series', 'animated_series']:
+    if movie_type.get(chat_id) not in SERIES_TYPES:
         bot.send_message(chat_id, 'Цей контент не підтримує сезони.')
         return
     new_total = int(doc.get('seasons', 0)) + 1
