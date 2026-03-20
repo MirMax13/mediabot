@@ -122,10 +122,9 @@ def handle_media_selection(call):
 def handle_submedia_selection(call):
     chat_id = call.message.chat.id
     selected_submedia = call.data.split("_", 1)[1]
-    
     media_type[chat_id] = 'film'
     if selected_submedia == 'аніме_фільми':
-        movie_type[chat_id] = 'anime_movies'
+        movie_type[chat_id] = 'anime_movie'
     elif selected_submedia == 'аніме_серіали':
         movie_type[chat_id] = 'anime_series'
     elif selected_submedia == 'усе_аніме':
@@ -164,7 +163,7 @@ def process_list(message,chat_id):
         media_type[chat_id] = 'game'
     elif message.lower() == 'книги':
         media_type[chat_id] = 'book'
-    print(media_type)
+    # print(media_type)
     bot.send_message(chat_id, 'Обробка вибору списку')
     markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
     options = ['Усі що є', 'За роком', 'За кількома роками']
@@ -211,8 +210,10 @@ def send_paginated_list(chat_id, page,year=None, years=None, option=None, search
         elif 'game' in media_type[chat_id]:
             all_items = list(db.games.find(query).sort([('date', -1), ('title', 1)]))
         elif 'film' in media_type[chat_id]:
+            print(f"Фільтруємо за типом: {movie_type_value}")  # Debug output
             if movie_type_value in ['film', 'anime_series', 'anime_movie', 'series', 'animated_series', 'animated_movie'] :
                 match_query = {'type': movie_type_value, **query}
+                print(f"Фільтруємо за типом2: {movie_type_value}")
             elif movie_type.get(chat_id) == 'anime':
                 match_query = {'type': {'$in': ['anime_series', 'anime_movie']}, **query}
             elif movie_type.get(chat_id) == 'animated':
@@ -239,6 +240,7 @@ def send_paginated_list(chat_id, page,year=None, years=None, option=None, search
         elif 'game' in media_type[chat_id]:
             all_items = list(db.games.find(query).sort([('rating', -1), ('title', 1)]))
         elif 'film' in media_type[chat_id]:
+            print(f"Фільтруємо за типом: {movie_type_value}")  # Debug output
             if movie_type_value in ['film', 'anime_series', 'anime_movie', 'series', 'animated_series', 'animated_movie']:
                 match_query = {'type': movie_type_value, **query}
             elif movie_type.get(chat_id) == 'anime':
