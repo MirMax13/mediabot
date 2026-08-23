@@ -47,7 +47,7 @@ def process_title(message):
         params_dict[chat_id]['title'] = message.text
         if media_type[chat_id] == 'book':
             ask_for_author(message)
-        elif movie_type[chat_id] == 'series':
+        elif movie_type.get(chat_id) == 'series':
             ask_for_seasons(message)
         elif is_waiting.get(chat_id, False):
             ask_for_review(message)
