@@ -496,30 +496,6 @@ def handle_edit_season_rating(call):
     msg = bot.send_message(chat_id, f'Нова оцінка для сезону {season_num} (0-10 або - щоб очистити):')
     bot.register_next_step_handler(msg, _process_edit_season_rating)
 
-
-# --- Callback: відкриття редактора сезонів без проходження через edit_smth (прямо) ---
-@bot.callback_query_handler(func=lambda call: call.data.startswith('edit_seasons_'))
-def handle_edit_seasons(call):
-    chat_id = call.message.chat.id
-    media_id = call.data.split('_')[2]
-    _open_seasons_editor(chat_id, media_id)
-
-# --- Callback: редагування рейтингу конкретного сезону ---
-@bot.callback_query_handler(func=lambda call: call.data.startswith('edit_season_rating_'))
-def handle_edit_season_rating(call):
-    chat_id = call.message.chat.id
-    parts = call.data.split('_')
-    # pattern: edit_season_rating_<mediaType>_<mediaId>_<season>
-    media_id = parts[3]
-    season_num = int(parts[4])
-    params_dict[chat_id] = {
-        'media_id': media_id,
-        'season_to_edit': season_num,
-        'state': 'editing_season_rating'
-    }
-    msg = bot.send_message(chat_id, f'Нова оцінка для сезону {season_num} (0-10 або - щоб очистити):')
-    bot.register_next_step_handler(msg, _process_edit_season_rating)
-
 def _process_edit_season_rating(message):
     chat_id = message.chat.id
     state = params_dict.get(chat_id, {})

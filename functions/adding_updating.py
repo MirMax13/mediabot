@@ -6,6 +6,7 @@ from config import bot, params_dict
 from functions.admin_check import is_user_admin
 import os
 from variables.globals import media_type, movie_type,is_waiting
+from variables.media_types import SERIES_TYPES
 from functions.markup_buttons import markup_buttons
 
 MAX_RECORDS_PER_USER = int(os.getenv('MAX_RECORDS_PER_USER', 300))
@@ -450,6 +451,14 @@ def update_info(message):
         update_data['conditions'] = conditions
     elif media_type[chat_id] == 'book' and author:
         update_data['author'] = author
+    if movie_type.get(chat_id) in SERIES_TYPES and 'seasons' in params_dict.get(chat_id, {}):
+        seasons = params_dict[chat_id].get('seasons')
+        if seasons is not None:
+            update_data['seasons'] = seasons
+            for season in range(1, seasons + 1):
+                season_key = f'rating season {season}'
+                if season_key in params_dict[chat_id]:
+                    update_data[season_key] = params_dict[chat_id][season_key]
 
     db[media_type[chat_id] + 's'].update_one({'_id': ObjectId(media_id)}, {'$set': update_data})
     bot.send_message(chat_id, 'Інформацію оновлено.', reply_markup=types.ReplyKeyboardRemove())
